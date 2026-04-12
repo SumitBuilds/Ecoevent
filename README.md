@@ -1,121 +1,117 @@
 🌱 EcoEvent — Smart Event Waste Management Platform
+A data-driven platform that predicts, tracks, and optimizes waste generation during events — connecting event organizers with BMC for smarter, cleaner cities.
 
-🚀 A data-driven platform to predict, track, and optimize waste generation during events, connecting event organizers with municipal authorities (BMC) for smarter urban waste management.
-
-🧠 Problem Statement
-
-Large-scale events like weddings, college fests, and corporate gatherings generate significant amounts of unmanaged waste.
+🧠 Problem
+Large-scale events like weddings, college fests, and corporate gatherings generate huge amounts of unmanaged waste.
 
 No prior waste estimation
 Poor segregation practices
-No coordination with municipal authorities
+No coordination with municipal authorities (BMC)
 Leads to overflow, complaints, and environmental damage
 💡 Solution
-
-EcoEvent solves this by creating a shared data platform between:
+EcoEvent provides a shared platform connecting:
 
 Event Organizers
 Vendors (Caterers, Decorators)
 Municipal Authorities (BMC)
-
 It enables:
 
-📊 Pre-event waste prediction
-♻️ Real-time waste tracking
-🚛 Advance pickup planning for BMC
-📈 Post-event sustainability reporting
-⚙️ Core Features
-🔹 1. Pre-Event Waste Prediction
-Uses inputs like:
-Guest count
-Catering type
-Event details
+Pre-event waste prediction
+Real-time waste tracking
+Smart pickup planning
+Post-event sustainability reporting
+🔥 Features
+📊 Pre-Event Waste Prediction
+Uses guest count, catering type, and event details
 Predicts:
 Wet waste
 Dry waste
 Recyclable waste
-Calculates required number of bins
-🔹 2. Real-Time Waste Estimation (No Sensors Required)
+Suggests number of bins required
+♻️ Real-Time Waste Tracking (No Sensors)
 Staff logs:
-Number of bins used
-Average fill level (25%, 50%, 75%, 100%)
-Converts volume → weight using density-based model
-Waste (kg) = Bins × Fill Level × Bin Volume × Density
-🔹 3. Sustainability Score
 
-Evaluates event performance based on:
+Number of bins
+Fill levels (25%, 50%, 75%, 100%)
+Converts volume → weight using:
+
+🔥 Features
+📊 Pre-Event Waste Prediction
+Uses guest count, catering type, and event details
+Predicts:
+Wet waste
+Dry waste
+Recyclable waste
+Suggests number of bins required
+♻️ Real-Time Waste Tracking (No Sensors)
+Staff logs:
+
+Number of bins
+Fill levels (25%, 50%, 75%, 100%)
+Converts volume → weight using:Waste (kg) = Bins × Fill Level × Bin Volume × Density
+
+📈 Sustainability Score
+Evaluates:
 
 Segregation efficiency
-Use of reusable materials
-Waste reduction practices
+Use of reusable vs disposable items
+Non-recyclable material usage
 Prediction accuracy
-🔹 4. BMC Dashboard
-Ward-level waste insights
-Event-based waste forecasting
-Pickup scheduling assistance
-Data for municipal planning
-🏗️ System Architecture
-Frontend (React)
-        ↓
-Backend API (Node.js + Express)
-        ↓
-Database (MongoDB)
-        ↓
-Analytics Engine (Waste Prediction + Scoring)
-🧮 Methodology
-Stage 1 — Prediction (Before Event)
-Food Waste = Guests × Waste per guest
-Catering Type	Waste per Guest
-Buffet	0.5 kg
-Plated	0.3 kg
-Snacks	0.15 kg
+🧪 Methodology
+Stage 1 — Pre-Event Prediction
+Uses research-backed multipliers:
 
-Additional factors:
+Buffet: ~0.5 kg per guest
+Plated: ~0.3 kg per guest
+Snacks: ~0.15 kg per guest
+Converts waste into bins using:
 
-Plates, bottles, décor, packaging
-Stage 2 — Event Day Estimation
-Actual Waste = Bins × Fill × Volume × Density
-Waste Type	Density
-Wet	0.35 kg/L
-Dry	0.17 kg/L
-Recyclable	0.12 kg/L
-Stage 3 — Evaluation
-Accuracy = 1 - |Predicted - Actual| / Predicted
+Wet bin (120L ≈ 40–45 kg)
+Dry bin (120L ≈ 20–22 kg)
+Recyclable bin (60L ≈ 12–15 kg)
+Stage 2 — Event-Day Confirmation
+No weighing machines required
 
-Generates final sustainability score and report.
+Uses observable signals:
+
+Bin fill levels
+Item counts (bottles, plates)
+Segregation quality
+Converts fill level → kg:
 
 🛠️ Tech Stack
-Frontend
-React.js
-Bootstrap / Tailwind
-Backend
+Frontend:
+
+React.js / Next.js
+Tailwind CSS
+Backend:
+
 Node.js
 Express.js
-Database
+Database:
+
 MongoDB
-Tools
+Other:
+
 REST APIs
-JWT Authentication
-Chart.js (Analytics)
-🏆 Achievement
-🥇 Winner — Hack-AI-Thon 4.0 (VESIT, 2026)
-Built and presented EcoEvent as a real-world solution for event waste management in a 24-hour AI hackathon.
-🌍 SDG Alignment
-SDG 12 — Responsible Consumption & Production
-SDG 11 — Sustainable Cities & Communities
-SDG 13 — Climate Action
+Vercel / Render deployment
+🧩 System Architecture
+User (Organizer) → Frontend → Backend API → Database
+↓
+BMC Dashboard
+
+Frontend collects event data
+Backend calculates waste predictions
+Database stores logs and reports
+BMC dashboard shows upcoming waste forecasts
 🚀 Future Improvements
-IoT-based smart bin integration
-AI-based waste prediction models
-Real-time BMC truck tracking
-Vendor compliance scoring
-📌 Key Insight
-
-"Waste cannot be measured before an event — it must be predicted.
-EcoEvent bridges this gap by combining prediction + real-time estimation."
-
+AI-based waste prediction using historical data
+Image-based bin detection
+IoT smart bins integration
+Live BMC truck tracking
 👨‍💻 Author
-Sumit Pathak  
-📍 Mumbai, India  
-🔗 [LinkedIn](https://www.linkedin.com/in/sumit-pathak-a57893375/)  
-🔗 [GitHub](https://github.com/SumitBuilds)
+Sumit Pathak
+📍 Mumbai, India
+
+🔗 LinkedIn
+🔗 GitHub
