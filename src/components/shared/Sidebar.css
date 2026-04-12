@@ -1,0 +1,130 @@
+.sidebar {
+  width: var(--sidebar-width);
+  background: #0b1727; /* Deep blue shade */
+  border-right: 1px solid #1e293b;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  overflow-y: auto;
+}
+
+.sidebar__header {
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid #1e293b;
+}
+
+.sidebar__logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sidebar__brand {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 18px;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+.sidebar__nav {
+  flex: 1;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.65); /* light text on dark blue */
+  text-decoration: none;
+  transition: all var(--duration-fast) var(--ease-out);
+  border-left: 3px solid transparent;
+}
+
+.sidebar__link:hover {
+  color: var(--accent);
+  background: rgba(34, 197, 94, 0.15);
+}
+
+.sidebar__link--active {
+  color: #0b1727; /* Dark text */
+  background: var(--accent); /* Solid green background on active */
+  border-left-color: var(--accent);
+  font-weight: 600;
+}
+
+.sidebar__footer {
+  padding: 16px;
+  border-top: 1px solid #1e293b;
+}
+
+.sidebar__user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.sidebar__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(110, 232, 74, 0.15);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.sidebar__user-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.sidebar__user-role {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.sidebar__signout {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-3);
+  padding: 6px 0;
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.sidebar__signout:hover {
+  color: var(--red);
+}
+
+/* Mobile */
+@media (max-width: 1024px) {
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s var(--ease-out);
+  }
+
+  .sidebar--open {
+    transform: translateX(0);
+  }
+}

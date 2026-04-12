@@ -1,0 +1,48 @@
+.dash__stats {
+  margin-bottom: 28px;
+}
+
+.dash__body {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.activity-item {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.activity-item__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-top: 0;
+  flex-shrink: 0;
+}
+
+.activity-item__text {
+  font-size: 14px;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+.activity-item__time {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+
+@media (max-width: 1024px) {
+  .dash__body {
+    grid-template-columns: 1fr;
+  }
+}

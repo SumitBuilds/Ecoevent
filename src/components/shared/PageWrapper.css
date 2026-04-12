@@ -1,0 +1,18 @@
+.page-wrapper {
+  display: flex;
+  min-height: 100vh;
+}
+
+.page-content {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  padding: 28px 32px;
+  min-height: 100vh;
+}
+
+@media (max-width: 1024px) {
+  .page-content {
+    margin-left: 0;
+    padding: 20px 16px;
+  }
+}

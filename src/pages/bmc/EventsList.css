@@ -1,0 +1,21 @@
+.filter-bar__inner {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-bar .form-group {
+  margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .filter-bar__inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-bar__inner .form-group {
+    width: 100% !important;
+  }
+}

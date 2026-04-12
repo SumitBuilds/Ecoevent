@@ -1,0 +1,54 @@
+.livelog {
+  width: 100%;
+}
+
+.livelog__layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+@media (min-width: 1024px) {
+  .livelog__layout {
+    grid-template-columns: 1.8fr 1fr;
+    align-items: start;
+  }
+}
+
+.livelog__main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.livelog__sidebar {
+  position: sticky;
+  top: 100px;
+}
+
+.livelog__bin-row {
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.livelog__bin-row:hover {
+  border-color: var(--border);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.livelog__bins-list {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+/* Custom scrollbar for bin list */
+.livelog__bins-list::-webkit-scrollbar {
+  width: 4px;
+}
+.livelog__bins-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}

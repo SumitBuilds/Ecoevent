@@ -1,0 +1,44 @@
+.bin-card {
+  background: var(--bin-bg);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bin-card__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bin-card__icon {
+  font-size: 16px;
+}
+
+.bin-card__type {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--bin-color);
+}
+
+.bin-card__count {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.bin-card__number {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 32px;
+  color: var(--bin-color);
+  line-height: 1;
+}
+
+.bin-card__unit {
+  font-size: 14px;
+  color: var(--text-2);
+}
