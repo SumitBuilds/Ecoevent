@@ -47,11 +47,11 @@ export default function Estimate() {
           name: e.eventName, type: e.eventType, guests: e.guestCount,
           date: e.date, startTime: e.startTime, endTime: e.endTime, pickupTimeRange: e.pickupTimeRange, 
           duration: e.durationHours, cateringStyle: e.cateringStyle,
-          plateType: e.plateType, decorTypes: e.decorTypes,
+          plateType: e.plateType, decorTypes: e.decorTypes, bottleCrates: e.bottleCrates,
           caterer: e.catererName, decorator: e.decoratorName,
-          wetWaste: e.estimatedBins?.wet * 45 || 0,
-          dryWaste: e.estimatedBins?.dry * 22 || 0,
-          recyclableWaste: e.estimatedBins?.recyclable * 15 || 0,
+          wetKg: e.estimatedBins?.wetKg || 0,
+          dryKg: e.estimatedBins?.dryKg || 0,
+          recyclableKg: e.estimatedBins?.recyclableKg || 0,
           wetBins: e.estimatedBins?.wet || 0,
           dryBins: e.estimatedBins?.dry || 0,
           recyclableBins: e.estimatedBins?.recyclable || 0,
@@ -82,28 +82,37 @@ export default function Estimate() {
       guestCount: eventData.guests,
       cateringStyle: eventData.cateringStyle,
       plateType: eventData.plateType,
+      bottleCrates: eventData.bottleCrates,
       decorTypes: eventData.decorTypes
     });
   }, [eventData, location.state]);
 
   const donutData = useMemo(() => {
-    if (!est) return null;
+    if (!eventData) return null;
+    const wetKg = eventData.wetKg || 0;
+    const dryKg = eventData.dryKg || 0;
+    const recyclableKg = eventData.recyclableKg || 0;
+
     return {
       labels: [
-        `Wet Waste (${est.wetWaste} kg)`,
-        `Dry Waste (${est.dryWaste} kg)`,
-        `Recyclable (${est.recyclableWaste} kg)`
+        `Wet Waste (${wetKg} kg)`,
+        `Dry Waste (${dryKg} kg)`,
+        `Recyclable (${recyclableKg} kg)`
       ],
       datasets: [{
-        data: [est.wetWaste, est.dryWaste, est.recyclableWaste],
-        backgroundColor: ['#4caf50', '#ffc107', '#2196f3'],
+        data: [wetKg, dryKg, recyclableKg],
+        backgroundColor: [
+          'rgba(110, 232, 74, 0.8)',
+          'rgba(245, 158, 11, 0.8)',
+          'rgba(59, 130, 246, 0.8)'
+        ],
         borderColor: 'transparent',
         borderWidth: 0,
         hoverOffset: 4,
         borderRadius: 4,
       }],
     };
-  }, [est]);
+  }, [eventData]);
 
   const isConfirmed = slotData?.status === 'confirmed'
   const isCompleted = slotData?.status === 'completed'
