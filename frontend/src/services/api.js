@@ -1,13 +1,13 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://ecoevent-backend.onrender.com',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
   headers: { 'Content-Type': 'application/json' }
 })
 
 // Attach JWT token to every request automatically
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('segregacy_token')
+  const token = localStorage.getItem('ecoevent_token')
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
@@ -17,8 +17,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('segregacy_token')
-      localStorage.removeItem('segregacy_user')
+      localStorage.removeItem('ecoevent_token')
+      localStorage.removeItem('ecoevent_user')
       window.location.href = '/'
     }
     return Promise.reject(error)

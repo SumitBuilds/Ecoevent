@@ -65,7 +65,7 @@ export default function Login() {
           <h1 style={{
             fontFamily: 'Fraunces, serif', fontSize: '28px',
             fontWeight: 900, color: 'var(--accent)'
-          }}>Segregacy</h1>
+          }}>EcoEvent</h1>
           <p style={{ fontSize: '13px', color: 'var(--text-2)', marginTop: '4px' }}>
             Sign in to your account
           </p>
