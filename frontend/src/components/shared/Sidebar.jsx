@@ -29,7 +29,7 @@ const bmcLinks = [
   { to: '/bmc/settings', icon: RiSettings3Line, label: 'Ward Settings' },
 ];
 
-export default function Sidebar({ role = 'organizer' }) {
+export default function Sidebar({ role = 'organizer', isOpen, setIsOpen }) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const links = role === 'bmc' ? bmcLinks : organizerLinks;
@@ -42,10 +42,14 @@ export default function Sidebar({ role = 'organizer' }) {
     navigate('/');
   };
 
+  const handleLinkClick = () => {
+    if (setIsOpen) setIsOpen(false);
+  };
+
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isOpen ? 'sidebar--open' : ''}`}>
       <div className="sidebar__header">
-        <Link to="/" className="sidebar__logo" style={{ textDecoration: 'none' }}>
+        <Link to="/" className="sidebar__logo" style={{ textDecoration: 'none' }} onClick={handleLinkClick}>
           <svg viewBox="0 0 32 32" width="24" height="24">
             <path d="M16 4C11 4 7 9 7 14c0 4 3 7.5 7 8.5v4.5c0 .6.4 1 1 1s1-.4 1-1v-4.5c4-1 7-4.5 7-8.5 0-5-4-10-7-10zm-2 15.3c-3-.8-5-3.5-5-6.3C9 9 12 6 16 6c.4 0 .7 0 1 .1C13.5 8 11.5 11.5 11.5 15.5c0 1.3.3 2.6.8 3.8H14z" fill="var(--accent)" />
           </svg>
@@ -58,6 +62,7 @@ export default function Sidebar({ role = 'organizer' }) {
           <NavLink
             key={to}
             to={to}
+            onClick={handleLinkClick}
             className={({ isActive }) =>
               `sidebar__link ${isActive ? 'sidebar__link--active' : ''}`
             }

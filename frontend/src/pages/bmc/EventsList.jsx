@@ -35,7 +35,7 @@ export default function EventsList() {
   return (
     <PageWrapper role="bmc">
       <div className="events-list">
-        <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="page-header page-header--flex">
           <div>
             <h1 className="heading-2">Events Registry</h1>
             <p className="date" style={{ color: 'var(--text-3)' }}>Monitor activity and schedule pickups across your ward zone.</p>

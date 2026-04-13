@@ -289,12 +289,12 @@ export default function RegisterEvent() {
               </div>
               <div className="form-group form-group--full">
                 <label>Requested Pickup Time Range</label>
-                <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                  <div style={{ flex: 1 }}>
+                <div className="time-range-group">
+                  <div style={{ flex: 1, width: '100%' }}>
                      <TimeInput12 name="pickupStart" value={form.pickupStart} onChange={handleChange} />
                   </div>
-                  <span style={{ color: 'var(--text-3)' }}>to</span>
-                  <div style={{ flex: 1 }}>
+                  <span className="time-range-spacer">to</span>
+                  <div style={{ flex: 1, width: '100%' }}>
                      <TimeInput12 name="pickupEnd" value={form.pickupEnd} onChange={handleChange} />
                   </div>
                 </div>

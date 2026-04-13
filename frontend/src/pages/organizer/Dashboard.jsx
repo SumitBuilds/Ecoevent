@@ -47,8 +47,8 @@ export default function Dashboard() {
   return (
     <PageWrapper role="organizer">
       <div className="dash">
-                <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <div>
+                <div className="page-header page-header--flex" style={{ marginBottom: '16px' }}>
+          <div className="page-header__content">
             <h1 className="heading-2">Good morning, {user?.name?.split(' ')[0] || 'there'}</h1>
             <p className="date" style={{ marginBottom: '4px' }}>{today}</p>
             <p style={{ fontSize: '13px', color: 'var(--text-2)', marginTop: '4px' }}>
@@ -60,7 +60,7 @@ export default function Dashboard() {
           <button 
             className="btn-primary" 
             onClick={() => navigate('/organizer/register')}
-            style={{ padding: '10px 20px', borderRadius: '50px', display: 'flex', alignItems: 'center', gap: '8px' }}
+            style={{ borderRadius: '50px', display: 'flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap' }}
           >
             <RiCalendarLine size={18} />
             Register New Event

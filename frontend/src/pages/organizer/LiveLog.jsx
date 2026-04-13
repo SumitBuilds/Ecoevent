@@ -171,7 +171,7 @@ export default function LiveLog() {
   return (
     <PageWrapper role="organizer">
       <div className="livelog">
-        <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="page-header page-header--flex">
           <div>
             <h1 className="heading-2">{event?.eventName || 'Loading...'}</h1>
             <p className="date" style={{ color: 'var(--accent)', fontWeight: 600 }}>LIVE EVENT LOGGING</p>

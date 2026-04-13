@@ -351,6 +351,15 @@ label {
   background: rgba(110, 232, 74, 0.03);
 }
 
+@media (max-width: 1024px) {
+  .data-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 /* ── Status Badges ── */
 .status-badge {
   display: inline-flex;
@@ -422,10 +431,24 @@ label {
   margin-bottom: var(--space-xl);
 }
 
+.page-header--flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
 .page-header .date {
   font-size: 14px;
   color: var(--text-3);
   margin-top: 4px;
+}
+
+@media (max-width: 768px) {
+  .page-header--flex {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 /* ── Grid Helpers ── */
@@ -510,6 +533,29 @@ label {
 
 .step-item.active .step-label {
   color: var(--text-1);
+}
+
+@media (max-width: 768px) {
+  .step-label {
+    font-size: 11px;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.2;
+  }
+  .step-item {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .step-item::after {
+    position: absolute;
+    top: 16px;
+    left: calc(50% + 20px);
+    width: calc(100% - 40px);
+    margin: 0;
+  }
+  .step-item:last-child::after {
+    display: none;
+  }
 }
 
 /* ── Radio pills ── */
