@@ -111,12 +111,38 @@ router.patch('/slots/:id/confirm', protect, roleGuard('bmc'), async (req, res) =
 // PATCH /api/bmc/slots/:id/complete — mark pickup as done
 router.patch('/slots/:id/complete', protect, roleGuard('bmc'), async (req, res) => {
   try {
-    const slot = await PickupSlot.findByIdAndUpdate(
-      req.params.id,
-      { status: 'completed' },
-      { new: true }
-    )
+    const slot = await PickupSlot.findById(req.params.id).populate('eventId')
     if (!slot) return res.status(404).json({ error: 'Slot not found' })
+
+    const event = slot.eventId
+    if (event && event.date && event.endTime) {
+      const now = new Date()
+      const [endH, endM] = event.endTime.split(':').map(Number)
+      const [startH, startM] = (event.startTime || "00:00").split(':').map(Number)
+      
+      // event.date is YYYY-MM-DD
+      let eventEndDate = new Date(event.date)
+      eventEndDate.setHours(endH, endM, 0, 0)
+
+      // Handle events ending past midnight
+      // If end time is earlier than start time, it ends the next day
+      const startTimeMinutes = startH * 60 + startM
+      const endTimeMinutes = endH * 60 + endM
+      
+      if (endTimeMinutes < startTimeMinutes) {
+        eventEndDate.setDate(eventEndDate.getDate() + 1)
+      }
+
+      if (now < eventEndDate) {
+        return res.status(400).json({ 
+          error: `Event "${event.eventName}" is still ongoing. Pickup can only be completed after it ends at ${event.endTime}.` 
+        })
+      }
+    }
+
+    slot.status = 'completed'
+    await slot.save()
+
     res.json({ slot })
   } catch (err) {
     res.status(500).json({ error: err.message })
