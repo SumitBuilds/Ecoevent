@@ -9,15 +9,26 @@ const { estimateWaste } = require('../utils/wasteEstimator')
 // POST /api/events — create event (organizer only)
 router.post('/', protect, roleGuard('organizer'), async (req, res) => {
   try {
+    const { guestCount, bottleCrates, durationHours } = req.body
+
+    // Sanitize numeric inputs to prevent validation failures (e.g. empty strings "" from frontend)
+    const guests = Number(guestCount) || 0
+    const crates = Number(bottleCrates) || 0
+    const duration = Number(durationHours) || 4
+
     const estimatedBins = estimateWaste({
-      guestCount:    req.body.guestCount,
+      guestCount:    guests,
       cateringStyle: req.body.cateringStyle,
       plateType:     req.body.plateType,
-      bottleCrates:  req.body.bottleCrates,
+      bottleCrates:  crates,
       decorTypes:    req.body.decorTypes
     })
+
     const event = await Event.create({
       ...req.body,
+      guestCount: guests,
+      bottleCrates: crates,
+      durationHours: duration,
       organizerId: req.user.id,
       estimatedBins: {
         wet:          estimatedBins.wetBins,
