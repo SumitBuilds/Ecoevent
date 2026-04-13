@@ -101,7 +101,7 @@ export default function Register() {
             fontWeight: 900, color: 'var(--accent)'
           }}>Create Account</h1>
           <p style={{ fontSize: '13px', color: 'var(--text-2)', marginTop: '4px' }}>
-            Join EcoEvent — manage waste responsibly
+            Join Segregacy — manage waste responsibly
           </p>
         </div>
 

@@ -4,8 +4,8 @@ import { useAuth } from '../../context/AuthContext'
 export default function ProtectedRoute({ children, role }) {
   const { user } = useAuth()
   
-  const storedUser = localStorage.getItem('segregacy_user') 
-    ? JSON.parse(localStorage.getItem('segregacy_user')) 
+  const storedUser = localStorage.getItem('ecoevent_user') 
+    ? JSON.parse(localStorage.getItem('ecoevent_user')) 
     : null;
     
   const currentUser = user || storedUser;

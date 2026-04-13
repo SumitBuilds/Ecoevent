@@ -27,7 +27,7 @@ export default function Profile() {
     try {
       const res = await authAPI.updateWard(wardZone)
       const updatedUser = res.data.user
-      loginUser(localStorage.getItem('segregacy_token'), updatedUser)
+      loginUser(localStorage.getItem('ecoevent_token'), updatedUser)
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
     } catch (err) {

@@ -13,7 +13,7 @@ export default function Scheduler() {
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [truck, setTruck] = useState('');
   const [activeTab, setActiveTab] = useState('upcoming');
-  const [pickupTime, setPickupTime] = useState('06:00');
+  const [pickupTime, setPickupTime] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -56,14 +56,36 @@ export default function Scheduler() {
     event: e,
   }));
 
+  // Pre-fill pickup time from the organizer's requested window when an event is selected
+  useEffect(() => {
+    const selected = events.find(e => e._id === selectedEventId);
+    if (selected?.pickupTimeRange) {
+      // pickupTimeRange format: "06:00 PM - 08:00 PM"
+      // Extract the start time and convert to 24h for the time input
+      const match = selected.pickupTimeRange.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+      if (match) {
+        let hr = parseInt(match[1], 10);
+        const min = match[2];
+        const ap = match[3].toUpperCase();
+        if (ap === 'PM' && hr !== 12) hr += 12;
+        if (ap === 'AM' && hr === 12) hr = 0;
+        setPickupTime(`${hr.toString().padStart(2, '0')}:${min}`);
+      }
+    }
+  }, [selectedEventId, events]);
+
   const handleConfirm = () => {
     const sel = events.find(e => e._id === selectedEventId);
     if (sel && sel.pickupSlot?._id && truck) {
+      if (!pickupTime) {
+        alert('Please set an arrival time.');
+        return;
+      }
       setSubmitting(true);
       bmcAPI.confirmSlot(sel.pickupSlot._id, { truckId: truck, scheduledTime: pickupTime })
         .then(() => {
           alert(`Pickup confirmed for ${sel.eventName}! Planner will be notified.`);
-          fetchEvents(); // Refresh state
+          fetchEvents();
         })
         .catch(err => {
           console.error(err);
@@ -168,6 +190,21 @@ export default function Scheduler() {
                     <div className="detail-item"><span className="detail-label">Recyclable</span><span>{sel.estimatedBins?.recyclable || 0} Bins</span></div>
                   </div>
 
+                  {/* Show organizer's requested pickup window */}
+                  {sel.pickupTimeRange && (
+                    <div style={{
+                      marginTop: '16px',
+                      padding: '12px 16px',
+                      background: 'rgba(34, 197, 94, 0.08)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px',
+                      fontSize: '13px'
+                    }}>
+                      <span style={{ color: 'var(--text-2)', fontWeight: 500 }}>Organizer Requested Pickup Window:</span>
+                      <span style={{ color: 'var(--accent)', fontWeight: 700, marginLeft: '8px' }}>{sel.pickupTimeRange}</span>
+                    </div>
+                  )}
+
                   <div style={{ marginTop: '24px' }}>
                     <div className="form-group">
                       <label>Assign Municipal Truck</label>
@@ -180,7 +217,7 @@ export default function Scheduler() {
                     </div>
 
                     <div className="form-group" style={{ marginTop: '16px' }}>
-                      <label>Arrival Time Slot</label>
+                      <label>Arrival Time Slot {sel.pickupTimeRange && <span style={{ fontSize: '11px', color: 'var(--text-3)', fontWeight: 400 }}>(requested: {sel.pickupTimeRange})</span>}</label>
                       <input type="time" value={pickupTime} onChange={(e) => setPickupTime(e.target.value)} />
                     </div>
                   </div>
