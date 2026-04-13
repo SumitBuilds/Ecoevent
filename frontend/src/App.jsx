@@ -13,6 +13,7 @@ import Estimate from './pages/organizer/Estimate';
 import LiveLog from './pages/organizer/LiveLog';
 import Report from './pages/organizer/Report';
 import Certificate from './pages/organizer/Certificate';
+import Profile from './pages/organizer/Profile';
 
 // BMC
 import Overview from './pages/bmc/Overview';
@@ -62,6 +63,9 @@ export default function App() {
       } />
       <Route path="/organizer/certificate/:id" element={
         <ProtectedRoute role="organizer"><Certificate /></ProtectedRoute>
+      } />
+      <Route path="/organizer/profile" element={
+        <ProtectedRoute role="organizer"><Profile /></ProtectedRoute>
       } />
 
       {/* BMC — protected (no /bmc/login or /bmc/register needed) */}

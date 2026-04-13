@@ -47,10 +47,15 @@ export default function Dashboard() {
   return (
     <PageWrapper role="organizer">
       <div className="dash">
-                <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div>
             <h1 className="heading-2">Good morning, {user?.name?.split(' ')[0] || 'there'}</h1>
-            <p className="date">{today}</p>
+            <p className="date" style={{ marginBottom: '4px' }}>{today}</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-2)', marginTop: '4px' }}>
+              {user?.wardZone
+                ? `Events registered in: ${user.wardZone}`
+                : 'No ward zone set — please update your profile'}
+            </p>
           </div>
           <button 
             className="btn-primary" 
@@ -61,6 +66,18 @@ export default function Dashboard() {
             Register New Event
           </button>
         </div>
+
+        {!user?.wardZone && (
+          <div style={{
+            background: 'rgba(245,158,11,0.1)',
+            border: '1px solid rgba(245,158,11,0.3)',
+            borderRadius: '10px', padding: '12px 16px', marginBottom: '16px',
+            fontSize: '13px', color: '#f59e0b'
+          }}>
+            ⚠ Your ward zone is not set. BMC officers cannot see your events.
+            Please update your profile or contact support.
+          </div>
+        )}
 
         <div className="grid-4 dash__stats">
           <StatCard value={totalEvents} label="Events Registered" icon={<RiCalendarLine size={20} />} color="green" />

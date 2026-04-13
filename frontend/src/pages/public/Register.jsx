@@ -46,8 +46,8 @@ export default function Register() {
     if (form.password.length < 6) {
       return setError('Password must be at least 6 characters')
     }
-    if (role === 'bmc' && !form.wardZone) {
-      return setError('BMC officers must select a ward zone')
+    if (!form.wardZone) {
+      return setError('Please select your Mumbai ward zone')
     }
     setLoading(true)
     try {
@@ -101,7 +101,7 @@ export default function Register() {
             fontWeight: 900, color: 'var(--accent)'
           }}>Create Account</h1>
           <p style={{ fontSize: '13px', color: 'var(--text-2)', marginTop: '4px' }}>
-            Join EcoEvent — manage waste responsibly
+            Join Segregacy — manage waste responsibly
           </p>
         </div>
 
@@ -156,21 +156,25 @@ export default function Register() {
               value={form.email} onChange={e => update('email', e.target.value)} />
           </div>
 
-          {/* Ward Zone — shown for BMC officers */}
-          {role === 'bmc' && (
-            <div style={{ marginBottom: '14px' }}>
-              <label style={labelStyle}>Ward Zone</label>
-              <select
-                style={{ ...inputStyle, cursor: 'pointer' }}
-                required
-                value={form.wardZone}
-                onChange={e => update('wardZone', e.target.value)}
-              >
-                <option value="">Select your ward...</option>
-                {WARDS.map(w => <option key={w} value={w}>{w}</option>)}
-              </select>
-            </div>
-          )}
+          <div style={{ marginBottom: '14px' }}>
+            <label style={labelStyle}>
+              {role === 'bmc' ? 'Assigned Ward Zone' : 'Event Venue Ward Zone'}
+            </label>
+            <select
+              style={{ ...inputStyle, cursor: 'pointer' }}
+              required
+              value={form.wardZone}
+              onChange={e => update('wardZone', e.target.value)}
+            >
+              <option value="">Select your Mumbai ward</option>
+              {WARDS.map(w => <option key={w} value={w}>{w}</option>)}
+            </select>
+            <p style={{ fontSize: '11px', color: 'var(--text-2)', marginTop: '4px' }}>
+              {role === 'bmc'
+                ? 'Your assigned ward — you will only see events in this ward'
+                : 'The ward where you host most of your events'}
+            </p>
+          </div>
 
           <div style={{ marginBottom: '14px' }}>
             <label style={labelStyle}>Password</label>

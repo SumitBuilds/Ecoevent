@@ -1,6 +1,6 @@
 /**
- * EcoEvent Frontend Waste Estimation Engine
- * Keep in sync with ecoevent-backend/src/utils/wasteEstimator.js
+ * Segregacy Frontend Waste Estimation Engine
+ * Keep in sync with segregacy-backend/src/utils/wasteEstimator.js
  *
  * SOURCES FOR ALL VALUES:
  * [1] 700-800kg wet waste per 400-guest Indian wedding
@@ -60,13 +60,13 @@ export function estimateWaste({
 
   let wetKg = guests * foodPerGuest
 
-  // Source [5]: flowers = organic = wet waste
+  // Source [5]: flowers = organic = wet waste (scaled: ~0.02kg per guest)
   if (decor.includes('flowers')) {
-    wetKg += 8
+    wetKg += guests * 0.02
   }
 
   // Bin count: Source [3] — 120L bin = 45 kg wet
-  const wetBins = Math.max(1, Math.ceil(wetKg / 45))
+  const wetBins = wetKg > 0 ? Math.ceil(wetKg / 45) : 0
 
   // ─── DRY WASTE ───────────────────────────────────────────────────────────
   let dryKg = 0
@@ -76,20 +76,20 @@ export function estimateWaste({
     dryKg += guests * 0.015
   }
 
-  // Source [4]: water bottles — all bottles go to dry first
-  // (60% will be clean enough to recycle — handled in recyclable section)
-  dryKg += crates * 0.48
+  // Source [4]: water bottles — all bottles go to dry first, but we must SPLIT them
+  // 60% are clean enough to recycle, remaining 40% are dry waste
+  dryKg += crates * 0.48 * 0.4
 
-  // Source [5]: thermocol = 100% non-recyclable dry waste
+  // Source [5]: thermocol = 100% non-recyclable dry waste (scaled: ~0.0125kg per guest)
   if (decor.includes('thermocol')) {
-    dryKg += 5
+    dryKg += guests * 0.0125
   }
 
   // Source [5]: general packaging waste (wrappers, foil, bags)
   dryKg += guests * 0.05
 
   // Bin count: Source [3] — 120L bin = 22 kg dry
-  const dryBins = Math.max(1, Math.ceil(dryKg / 22))
+  const dryBins = dryKg > 0 ? Math.ceil(dryKg / 22) : 0
 
   // ─── RECYCLABLE WASTE ────────────────────────────────────────────────────
   let recyclableKg = 0
@@ -102,7 +102,7 @@ export function estimateWaste({
   recyclableKg += guests * 0.02
 
   // Bin count: Source [3] — 60L bin = 15 kg recyclable
-  const recyclableBins = Math.max(1, Math.ceil(recyclableKg / 15))
+  const recyclableBins = recyclableKg > 0 ? Math.ceil(recyclableKg / 15) : 0
 
   // ─── SMART TIPS ──────────────────────────────────────────────────────────
   if (plate === 'disposable') {
@@ -110,10 +110,12 @@ export function estimateWaste({
     tips.push(`Switch to steel plates → saves ${saved} kg of dry waste`)
   }
   if (decor.includes('thermocol')) {
-    tips.push('Avoid thermocol décor → 100% non-recyclable, adds 5 kg to landfill')
+    const thermoWaste = (guests * 0.0125).toFixed(1)
+    tips.push(`Avoid thermocol décor → 100% non-recyclable, adds ~${thermoWaste} kg to landfill`)
   }
   if (decor.includes('flowers')) {
-    tips.push('Donate flowers post-event to temples or composting units → saves ~8 kg wet waste')
+    const flowerWaste = (guests * 0.02).toFixed(1)
+    tips.push(`Donate flowers post-event to temples or composting units → saves ~${flowerWaste} kg wet waste`)
   }
   if (crates > 5) {
     tips.push(`Replace ${crates} crates of bottles with water dispensers → major plastic reduction`)
@@ -133,10 +135,10 @@ export function estimateWaste({
     totalBins: wetBins + dryBins + recyclableBins,
 
     // Raw kg — for donut chart
-    wetWaste:        round2(wetKg),
-    dryWaste:        round2(dryKg),
-    recyclableWaste: round2(recyclableKg),
-    totalPredictedWaste: round2(wetKg + dryKg + recyclableKg),
+    wetKg:           round2(wetKg),
+    dryKg:           round2(dryKg),
+    recyclableKg:    round2(recyclableKg),
+    totalPredictedKg: round2(wetKg + dryKg + recyclableKg),
 
     // Tips
     tips,

@@ -38,7 +38,7 @@ export default function Certificate() {
   const handlePrint = () => window.print()
 
   const handleShare = () => {
-    const text = `I just earned a Green Certificate from EcoEvent! My event "${event?.eventName}" scored ${wasteLog?.score}/100 for sustainable waste management. 🌱 #EcoEvent #SDG12`
+    const text = `I just earned a Green Certificate from Segregacy! My event "${event?.eventName}" scored ${wasteLog?.score}/100 for sustainable waste management. 🌱 #Segregacy #SDG12`
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
   }
 
@@ -52,7 +52,7 @@ export default function Certificate() {
         <div className="cert-container">
           <div className="cert-card" id="certificate">
             <div className="cert-header">
-              <span className="cert-brand">EcoEvent</span>
+              <span className="cert-brand">Segregacy</span>
             </div>
 
             <h2 className="cert-title">Certificate of Achievement</h2>
@@ -99,7 +99,7 @@ export default function Certificate() {
                 </p>
               </div>
               <div className="cert-verified">
-                <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent)' }}>Verified by EcoEvent ✓</p>
+                <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent)' }}>Verified by Segregacy ✓</p>
               </div>
             </div>
           </div>

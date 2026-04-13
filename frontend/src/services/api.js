@@ -7,7 +7,7 @@ const api = axios.create({
 
 // Attach JWT token to every request automatically
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('ecoevent_token')
+  const token = localStorage.getItem('segregacy_token')
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
@@ -17,8 +17,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('ecoevent_token')
-      localStorage.removeItem('ecoevent_user')
+      localStorage.removeItem('segregacy_token')
+      localStorage.removeItem('segregacy_user')
       window.location.href = '/'
     }
     return Promise.reject(error)
@@ -27,9 +27,10 @@ api.interceptors.response.use(
 
 // ─── AUTH ────────────────────────────────────────────────
 export const authAPI = {
-  register: (data) => api.post('/auth/register', data),
-  login:    (data) => api.post('/auth/login', data),
-  me:       ()     => api.get('/auth/me'),
+  register:   (data) => api.post('/auth/register', data),
+  login:      (data) => api.post('/auth/login', data),
+  me:         ()     => api.get('/auth/me'),
+  updateWard: (wardZone) => api.patch('/auth/update-ward', { wardZone }),
 }
 
 // ─── EVENTS ──────────────────────────────────────────────

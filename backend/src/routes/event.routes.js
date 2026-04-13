@@ -59,6 +59,12 @@ router.get('/:id', protect, async (req, res) => {
   try {
     const event = await Event.findById(req.params.id)
     if (!event) return res.status(404).json({ error: 'Event not found' })
+
+    // Ownership validation: ensure logged-in organizer only accesses their own events
+    if (req.user.role === 'organizer' && event.organizerId.toString() !== req.user.id) {
+      return res.status(403).json({ error: 'Not authorized to access this event' })
+    }
+
     const slot = await PickupSlot.findOne({ eventId: req.params.id })
     res.json({ event, pickupSlot: slot })
   } catch (err) {

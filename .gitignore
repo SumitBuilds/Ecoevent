@@ -7,12 +7,13 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
+node_modules/
+dist/
 dist-ssr
 *.local
 
-# Editor directories and files
+.env
+.env.*
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -25,7 +26,3 @@ dist-ssr
 
 # Local Netlify folder
 .netlify
-
-
-.env
-.env.*

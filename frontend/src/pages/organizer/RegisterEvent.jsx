@@ -6,13 +6,90 @@ import { estimateWaste } from '../../utils/wasteEstimator';
 import { saveEvent, saveDraftEvent, getDraftEvent, clearDraftEvent } from '../../utils/eventStore';
 import './RegisterEvent.css';
 
+function TimeInput12({ name, value, onChange }) {
+  const [h, m] = value ? value.split(':') : ['', ''];
+  
+  let hour12 = '';
+  let ampm = 'AM';
+  if (h !== '') {
+    let hour = parseInt(h, 10);
+    if (hour >= 12) {
+      ampm = 'PM';
+      if (hour > 12) hour -= 12;
+    } else if (hour === 0) {
+      hour = 12;
+    }
+    hour12 = hour.toString().padStart(2, '0');
+  }
+
+  const handleUpdate = (newH12, newMin, newAp) => {
+    let hr = parseInt(newH12 || '12', 10);
+    if (newAp === 'PM' && hr !== 12) hr += 12;
+    if (newAp === 'AM' && hr === 12) hr = 0;
+    
+    const finalM = newMin ? newMin.padStart(2, '0') : '00';
+    if (!newH12) { 
+      onChange({ target: { name, value: '' } });
+      return; 
+    }
+    
+    const finalH = hr.toString().padStart(2, '0');
+    onChange({ target: { name, value: `${finalH}:${finalM}` } });
+  };
+
+  const selectStyle = {
+    flex: 1, 
+    minWidth: 0, 
+    padding: '10px 4px', 
+    borderRadius: '8px', 
+    border: '1px solid var(--border)', 
+    background: 'transparent',
+    fontSize: '15px',
+    textAlign: 'center'
+  };
+
+  return (
+    <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+      <select 
+         style={selectStyle}
+         value={hour12} 
+         onChange={e => handleUpdate(e.target.value, m, ampm)}
+      >
+        <option value="">HH</option>
+        {[...Array(12)].map((_, i) => {
+           let val = (i+1).toString().padStart(2, '0');
+           return <option key={val} value={val}>{val}</option>;
+        })}
+      </select>
+      <select 
+         style={selectStyle}
+         value={m || ''} 
+         onChange={e => handleUpdate(hour12, e.target.value, ampm)}
+      >
+        <option value="">MM</option>
+        {["00","05","10","15","20","25","30","35","40","45","50","55"].map(val => (
+           <option key={val} value={val}>{val}</option>
+        ))}
+      </select>
+      <select 
+         style={selectStyle}
+         value={ampm} 
+         onChange={e => handleUpdate(hour12, m, e.target.value)}
+      >
+        <option value="AM">AM</option>
+        <option value="PM">PM</option>
+      </select>
+    </div>
+  );
+}
+
 export default function RegisterEvent() {
   const [step, setStep] = useState(1);
   const navigate = useNavigate();
   
   const [form, setForm] = useState({
     name: '', type: '', date: '', duration: '1', venue: '', ward: '',
-    startTime: '', endTime: '', pickupTimeRange: '',
+    startTime: '', endTime: '', pickupStart: '', pickupEnd: '', pickupTimeRange: '',
     guestCount: '', bottleCrates: '', cateringStyle: 'buffet', plateType: 'disposable',
     decorTypes: ['flowers'],
     caterer: '', catererContact: '', decorator: '', decoratorContact: ''
@@ -31,17 +108,41 @@ export default function RegisterEvent() {
     saveDraftEvent(form);
   }, [form]);
 
+  // Auto-calculate duration based on start and end time
+  useEffect(() => {
+    if (form.startTime && form.endTime) {
+      const [startH, startM] = form.startTime.split(':').map(Number);
+      const [endH, endM] = form.endTime.split(':').map(Number);
+      
+      let startTotal = startH * 60 + startM;
+      let endTotal = endH * 60 + endM;
+      
+      // If end time is before start time, assume it ends the next day
+      if (endTotal < startTotal) {
+        endTotal += 24 * 60;
+      }
+      
+      let diffHours = (endTotal - startTotal) / 60;
+      diffHours = Math.round(diffHours * 10) / 10;
+      if (diffHours === 0) diffHours = 24; 
+      
+      if (form.duration !== diffHours.toString()) {
+        setForm(f => ({ ...f, duration: diffHours.toString() }));
+      }
+    }
+  }, [form.startTime, form.endTime]);
+
   const [submitting, setSubmitting] = useState(false);
 
   const handleNext = async (nextStep) => {
     setError('');
     if (step === 1) {
-      if (!form.name || !form.type || !form.date || !form.duration || !form.venue || !form.ward || !form.startTime || !form.endTime || !form.pickupTimeRange) {
+      if (!form.name || !form.type || !form.date || !form.duration || !form.venue || !form.ward || !form.startTime || !form.endTime || !form.pickupStart || !form.pickupEnd) {
         setError('Please fill in all Event Details, including timings, to continue.');
         return;
       }
     } else if (step === 2) {
-      if (!form.guestCount || !form.bottleCrates) {
+      if (!form.guestCount || form.bottleCrates === null || form.bottleCrates === undefined || form.bottleCrates === '') {
         setError('Please fill in Waste Inputs to continue.');
         return;
       }
@@ -65,16 +166,29 @@ export default function RegisterEvent() {
       try {
         const prediction = estimateWaste(form);
         
+        const format12H = (val24) => {
+           if (!val24) return '';
+           const [h,m] = val24.split(':');
+           let hr = parseInt(h, 10);
+           const ap = hr >= 12 ? 'PM' : 'AM';
+           if (hr > 12) hr -= 12;
+           if (hr === 0) hr = 12;
+           return `${hr.toString().padStart(2, '0')}:${m} ${ap}`;
+        };
+        const generatedPickupTimeRange = form.pickupStart && form.pickupEnd 
+           ? `${format12H(form.pickupStart)} - ${format12H(form.pickupEnd)}` 
+           : form.pickupTimeRange;
+        
         const payload = {
           eventName: form.name,
           eventType: form.type,
           guestCount: form.guestCount,
           date: form.date,
-          durationHours: form.duration * 24, 
+          durationHours: form.duration,
           venueName: form.venue,
           startTime: form.startTime,
           endTime: form.endTime,
-          pickupTimeRange: form.pickupTimeRange,
+          pickupTimeRange: generatedPickupTimeRange,
           wardZone: form.ward,
           cateringStyle: form.cateringStyle,
           plateType: form.plateType,
@@ -158,26 +272,34 @@ export default function RegisterEvent() {
                 <input type="date" name="date" value={form.date} onChange={handleChange} />
               </div>
               <div className="form-group">
-                <label>Duration (days)</label>
-                <input type="number" name="duration" value={form.duration} onChange={handleChange} placeholder="e.g., 2" min="1" max="7" />
-              </div>
-              <div className="form-group">
                 <label>Venue Name</label>
                 <input type="text" name="venue" value={form.venue} onChange={handleChange} placeholder="e.g., Grand Ballroom, Chembur" />
               </div>
               <div className="form-group">
                 <label>Event Start Time</label>
-                <input type="time" name="startTime" value={form.startTime} onChange={handleChange} />
+                <TimeInput12 name="startTime" value={form.startTime} onChange={handleChange} />
               </div>
               <div className="form-group">
                 <label>Event End Time</label>
-                <input type="time" name="endTime" value={form.endTime} onChange={handleChange} />
+                <TimeInput12 name="endTime" value={form.endTime} onChange={handleChange} />
               </div>
               <div className="form-group">
+                <label>Duration (hours)</label>
+                <input type="number" name="duration" value={form.duration} readOnly style={{ backgroundColor: 'rgba(0,0,0,0.02)', cursor: 'not-allowed', color: 'var(--text-2)' }} placeholder="Auto-calculated" />
+              </div>
+              <div className="form-group form-group--full">
                 <label>Requested Pickup Time Range</label>
-                <input type="text" name="pickupTimeRange" value={form.pickupTimeRange} onChange={handleChange} placeholder="e.g., 10:00 PM - 12:00 AM" />
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                  <div style={{ flex: 1 }}>
+                     <TimeInput12 name="pickupStart" value={form.pickupStart} onChange={handleChange} />
+                  </div>
+                  <span style={{ color: 'var(--text-3)' }}>to</span>
+                  <div style={{ flex: 1 }}>
+                     <TimeInput12 name="pickupEnd" value={form.pickupEnd} onChange={handleChange} />
+                  </div>
+                </div>
               </div>
-              <div className="form-group">
+              <div className="form-group form-group--full">
                 <label>Mumbai Ward / Zone</label>
                 <select name="ward" value={form.ward} onChange={handleChange}>
                   <option value="">Select ward...</option>

@@ -67,18 +67,20 @@ export default function LiveLog() {
 
   const handleConfirmBin = (type, index) => {
     let binFill = 0
-    if (type === 'wet') {
-      binFill = wetBins[index].fill
-      setWetBins(prev => prev.filter((_, i) => i !== index))
+    if (type === 'wet') binFill = wetBins[index].fill
+    if (type === 'dry') binFill = dryBins[index].fill
+    if (type === 'rec') binFill = recBins[index].fill
+
+    if (binFill === 0) {
+      setApiError('Cannot confirm a bin with 0% fill.')
+      setTimeout(() => setApiError(''), 3000)
+      return
     }
-    if (type === 'dry') {
-      binFill = dryBins[index].fill
-      setDryBins(prev => prev.filter((_, i) => i !== index))
-    }
-    if (type === 'rec') {
-      binFill = recBins[index].fill
-      setRecBins(prev => prev.filter((_, i) => i !== index))
-    }
+
+    if (type === 'wet') setWetBins(prev => prev.filter((_, i) => i !== index))
+    if (type === 'dry') setDryBins(prev => prev.filter((_, i) => i !== index))
+    if (type === 'rec') setRecBins(prev => prev.filter((_, i) => i !== index))
+
     setConfirmedData(prev => ({ ...prev, [type]: prev[type] + binFill }))
   }
 

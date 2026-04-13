@@ -88,4 +88,22 @@ router.get('/me', require('../middleware/auth').protect, async (req, res) => {
   }
 })
 
+// PATCH /api/auth/update-ward
+router.patch('/update-ward', require('../middleware/auth').protect, async (req, res) => {
+  try {
+    const { wardZone } = req.body
+    if (!wardZone) return res.status(400).json({ error: 'wardZone required' })
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { wardZone },
+      { new: true }
+    ).select('-passwordHash')
+
+    res.json({ user })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 module.exports = router

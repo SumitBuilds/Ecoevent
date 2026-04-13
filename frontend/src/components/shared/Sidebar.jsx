@@ -4,7 +4,7 @@ import {
   RiLeafLine, RiFileChartLine, RiMedalLine,
   RiCalendarEventLine, RiTruckLine, RiShieldCheckLine,
   RiBarChartLine, RiSettings3Line, RiLogoutBoxLine,
-  RiAlertLine, RiWhatsappLine
+  RiAlertLine, RiWhatsappLine, RiUserLine
 } from 'react-icons/ri';
 import { useAuth } from '../../context/AuthContext';
 import './Sidebar.css';
@@ -16,6 +16,7 @@ const organizerLinks = [
   { to: '/organizer/live-logs', icon: RiLeafLine, label: 'Live Log' },
   { to: '/organizer/reports', icon: RiFileChartLine, label: 'Reports' },
   { to: '/organizer/certificates', icon: RiMedalLine, label: 'Certificates' },
+  { to: '/organizer/profile', icon: RiUserLine, label: 'My Profile' },
 ];
 
 const bmcLinks = [
