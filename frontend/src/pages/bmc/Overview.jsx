@@ -70,8 +70,8 @@ export default function Overview() {
 
         <div className="grid-4" style={{ marginBottom: '28px' }}>
           <StatCard value={stats.totalEvents} label="Events This Week" icon={<RiCalendarLine size={20} />} color="green" />
-          <StatCard value={stats.totalBins} label="Bins Needed" icon={<RiDeleteBinLine size={20} />} color="blue" />
-          <StatCard value={stats.confirmed} label="Slots Confirmed" icon={<RiCheckDoubleLine size={20} />} color="green" />
+          <StatCard value={`${stats.totalBins} bins`} label="Actual Bins Logged" icon={<RiDeleteBinLine size={20} />} color="blue" />
+          <StatCard value={`${stats.totalWasteKg || 0} kg`} label="Total Waste (Actual)" icon={<RiCheckDoubleLine size={20} />} color="green" />
           <StatCard value={stats.pending} label="Pending Slots" icon={<RiAlertLine size={20} />} color={stats.pending > 0 ? "red" : "green"} />
         </div>
 
@@ -80,7 +80,9 @@ export default function Overview() {
             <div className="card">
               <h4 className="heading-4" style={{ marginBottom: '16px' }}>Ward Activity Feedback</h4>
               <p style={{ color: 'var(--text-3)', fontSize: '13px' }}>
-                Total waste diversion is currently on track. Upcoming events are concentrated in the commercial zone.
+                {stats.totalBins > 0 
+                  ? `Managed ${stats.totalBins} bins of actual waste across ${stats.totalEvents} events. Accuracy focus: High.`
+                  : "Waiting for event data logs to calculate ward-wide performance metrics."}
               </p>
             </div>
           </div>
@@ -107,10 +109,10 @@ export default function Overview() {
                         </p>
                         <p style={{ fontSize: '11px', color: 'var(--text-2)' }}>
                           {event.date} · {event.wardZone} · {
-                            (event.estimatedBins?.wet || 0) +
-                            (event.estimatedBins?.dry || 0) +
-                            (event.estimatedBins?.recyclable || 0)
-                          } bins
+                            event.wasteLog 
+                              ? `${(event.wasteLog.wetFill || 0) + (event.wasteLog.dryFill || 0) + (event.wasteLog.recycleFill || 0)} Bins`
+                              : "No data logged yet"
+                          }
                         </p>
                       </div>
                       <button

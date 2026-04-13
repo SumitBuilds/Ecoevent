@@ -51,11 +51,23 @@ router.get('/events', protect, roleGuard('bmc'), async (req, res) => {
   try {
     const wardQuery = buildWardQuery(req.user.wardZone)
     const events = await Event.find(wardQuery).populate('organizerId', 'name email').sort({ date: -1 })
-    const eventsWithSlots = await Promise.all(events.map(async (e) => {
+    
+    const eventsWithLogs = await Promise.all(events.map(async (e) => {
       const slot = await PickupSlot.findOne({ eventId: e._id })
-      return { ...e.toObject(), pickupSlot: slot }
+      const log = await WasteLog.findOne({ eventId: e._id })
+      
+      const eventObj = e.toObject()
+      
+      // CRITICAL: Hide predictions from BMC officer
+      delete eventObj.estimatedBins
+      
+      return { 
+        ...eventObj, 
+        pickupSlot: slot,
+        wasteLog: log 
+      }
     }))
-    res.json({ events: eventsWithSlots })
+    res.json({ events: eventsWithLogs })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -73,13 +85,28 @@ router.get('/stats', protect, roleGuard('bmc'), async (req, res) => {
 
     const confirmed = slots.filter(s => s.status === 'confirmed').length
     const pending = slots.filter(s => s.status === 'pending').length
-    const totalBins = events.reduce((sum, e) =>
-      sum + (e.estimatedBins?.wet || 0) + (e.estimatedBins?.dry || 0) + (e.estimatedBins?.recyclable || 0), 0)
+    
+    // NEW: Calculate total bins and total weight from ACTUAL logs only
+    const actualBins = logs.reduce((sum, l) => sum + (l.wetFill || 0) + (l.dryFill || 0) + (l.recycleFill || 0), 0)
+    const actualKg = logs.reduce((sum, l) => {
+      const wet = (l.wetFill || 0) * 45
+      const dry = (l.dryFill || 0) * 22
+      const rec = (l.recycleFill || 0) * 15
+      return sum + wet + dry + rec
+    }, 0)
+
     const avgScore = logs.length
       ? Math.round(logs.reduce((s, l) => s + (l.score || 0), 0) / logs.length)
       : 0
 
-    res.json({ totalEvents: events.length, totalBins, confirmed, pending, avgScore })
+    res.json({ 
+      totalEvents: events.length, 
+      totalBins: actualBins, 
+      totalWasteKg: Math.round(actualKg),
+      confirmed, 
+      pending, 
+      avgScore 
+    })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

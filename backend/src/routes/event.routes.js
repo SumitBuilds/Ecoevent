@@ -2,6 +2,7 @@ const express = require('express')
 const router = express.Router()
 const Event = require('../models/Event')
 const PickupSlot = require('../models/PickupSlot')
+const WasteLog = require('../models/WasteLog')
 const { protect } = require('../middleware/auth')
 const { roleGuard } = require('../middleware/roleGuard')
 const { estimateWaste } = require('../utils/wasteEstimator')
@@ -77,7 +78,20 @@ router.get('/:id', protect, async (req, res) => {
     }
 
     const slot = await PickupSlot.findOne({ eventId: req.params.id })
-    res.json({ event, pickupSlot: slot })
+    const log = await WasteLog.findOne({ eventId: req.params.id })
+
+    const eventObj = event.toObject()
+
+    // CRITICAL: Hide predictions from BMC officer
+    if (req.user.role === 'bmc') {
+      delete eventObj.estimatedBins
+    }
+
+    res.json({ 
+      event: eventObj, 
+      pickupSlot: slot,
+      wasteLog: log
+    })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

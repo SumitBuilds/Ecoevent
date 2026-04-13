@@ -61,42 +61,51 @@ export default function EventsList() {
                 <th>Date & Req. Pickup</th>
                 <th>Venue</th>
                 <th>Attendees</th>
-                <th>Est. Waste</th>
-                <th>Pickup Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-2)', padding: '24px' }}>
-                  Loading events...
-                </td></tr>
-              ) : filtered.length === 0 ? (
-                <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-2)', padding: '24px' }}>
-                  No events found in your ward zone
-                </td></tr>
-              ) : (
-                filtered.map(event => {
-                  const totalBins = (event.estimatedBins?.wet || 0)
-                    + (event.estimatedBins?.dry || 0)
-                    + (event.estimatedBins?.recyclable || 0)
-                  const slotStatus = event.pickupSlot?.status || 'pending'
-
-                  return (
-                    <tr key={event._id}>
-                      <td style={{ fontWeight: 500 }}>{event.eventName}</td>
-                      <td>{event.organizerId?.name || 'Unknown'}</td>
-                      <td>
-                        {event.date}
-                        {event.pickupTimeRange && (
-                          <div style={{ fontSize: '11px', color: 'var(--accent)', marginTop: '2px', fontWeight: 600 }}>
-                            Req: {event.pickupTimeRange}
-                          </div>
-                        )}
-                      </td>
-                      <td>{event.venueName}</td>
-                      <td>{event.guestCount}</td>
-                      <td>{totalBins} bins</td>
+                      <th>Actual Waste</th>
+                      <th>Pickup Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loading ? (
+                      <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-2)', padding: '24px' }}>
+                        Loading events...
+                      </td></tr>
+                    ) : filtered.length === 0 ? (
+                      <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-2)', padding: '24px' }}>
+                        No events found in your ward zone
+                      </td></tr>
+                    ) : (
+                      filtered.map(event => {
+                        const log = event.wasteLog
+                        const totalActualBins = log ? (log.wetFill || 0) + (log.dryFill || 0) + (log.recycleFill || 0) : null
+                        const slotStatus = event.pickupSlot?.status || 'pending'
+      
+                        return (
+                          <tr key={event._id}>
+                            <td style={{ fontWeight: 500 }}>{event.eventName}</td>
+                            <td>{event.organizerId?.name || 'Unknown'}</td>
+                            <td>
+                              {event.date}
+                              {event.pickupTimeRange && (
+                                <div style={{ fontSize: '11px', color: 'var(--accent)', marginTop: '2px', fontWeight: 600 }}>
+                                  Req: {event.pickupTimeRange}
+                                </div>
+                              )}
+                            </td>
+                            <td>{event.venueName}</td>
+                            <td>{event.guestCount}</td>
+                            <td>
+                              {log ? (
+                                <span style={{ color: 'var(--text-1)', fontWeight: 600 }}>
+                                  {totalActualBins} bins
+                                </span>
+                              ) : (
+                                <span style={{ color: 'var(--text-3)', fontSize: '11px', fontStyle: 'italic' }}>
+                                  No data logged yet
+                                </span>
+                              )}
+                            </td>
                       <td>
                         <span style={{
                           padding: '3px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 500,

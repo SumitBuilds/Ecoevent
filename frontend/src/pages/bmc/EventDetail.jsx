@@ -9,6 +9,7 @@ export default function EventDetail() {
   const navigate = useNavigate()
   const [event, setEvent] = useState(null)
   const [pickupSlot, setPickupSlot] = useState(null)
+  const [wasteLog, setWasteLog] = useState(null)
   const [loading, setLoading] = useState(true)
   const [pickupDone, setPickupDone] = useState(false)
   const [confirming, setConfirming] = useState(false)
@@ -20,6 +21,7 @@ export default function EventDetail() {
       .then(res => {
         setEvent(res.data.event)
         setPickupSlot(res.data.pickupSlot)
+        setWasteLog(res.data.wasteLog)
         if (res.data.pickupSlot?.status === 'completed') setPickupDone(true)
       })
       .catch(console.error)
@@ -72,9 +74,13 @@ export default function EventDetail() {
     { step: 'Certificate',  done: event?.status === 'completed' },
   ]
 
-  const totalBins = (event?.estimatedBins?.wet || 0)
-    + (event?.estimatedBins?.dry || 0)
-    + (event?.estimatedBins?.recyclable || 0)
+  const actualBins = wasteLog 
+    ? (wasteLog.wetFill || 0) + (wasteLog.dryFill || 0) + (wasteLog.recycleFill || 0)
+    : 0;
+
+  const actualKg = wasteLog
+    ? (wasteLog.wetFill * 45) + (wasteLog.dryFill * 22) + (wasteLog.recycleFill * 15)
+    : 0;
 
   return (
     <PageWrapper role="bmc">
@@ -128,24 +134,38 @@ export default function EventDetail() {
             </div>
 
             <div className="card" style={{ marginBottom: '24px' }}>
-              <h4 className="heading-4" style={{ marginBottom: '16px' }}>Bin Requirements</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: 'var(--bg-2)', borderRadius: '8px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--text-2)' }}>🟢 Wet Waste</span>
-                  <span style={{ fontWeight: 600 }}>{event?.estimatedBins?.wet} × 120L bins</span>
+              <h4 className="heading-4" style={{ marginBottom: '16px' }}>
+                {wasteLog ? 'Actual Collection Data' : 'Resource Requirements'}
+              </h4>
+              
+              {wasteLog ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: 'var(--bg-2)', borderRadius: '8px' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--text-2)' }}>🟢 Actual Wet Waste</span>
+                    <span style={{ fontWeight: 600 }}>{wasteLog.wetFill} bins (~{wasteLog.wetFill * 45}kg)</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: 'var(--bg-2)', borderRadius: '8px' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--text-2)' }}>🟡 Actual Dry Waste</span>
+                    <span style={{ fontWeight: 600 }}>{wasteLog.dryFill} bins (~{wasteLog.dryFill * 22}kg)</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: 'var(--bg-2)', borderRadius: '8px' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--text-2)' }}>🔵 Actual Recyclable</span>
+                    <span style={{ fontWeight: 600 }}>{wasteLog.recycleFill} bins (~{wasteLog.recycleFill * 15}kg)</span>
+                  </div>
+                  <p style={{ marginTop: '16px', fontSize: '13px', textAlign: 'center', color: 'var(--accent)', fontWeight: 600 }}>
+                    Total Actual Load: {actualBins} Bins ({actualKg}kg)
+                  </p>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: 'var(--bg-2)', borderRadius: '8px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--text-2)' }}>🟡 Dry Waste</span>
-                  <span style={{ fontWeight: 600 }}>{event?.estimatedBins?.dry} × 120L bins</span>
+              ) : (
+                <div style={{ padding: '20px', textAlign: 'center', background: 'var(--bg-2)', borderRadius: '12px', border: '1px dashed var(--border)' }}>
+                  <p style={{ fontSize: '13px', color: 'var(--text-3)', margin: 0 }}>
+                    No wastelog exists yet. Prediction visibility restricted.
+                  </p>
+                  <p style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '4px' }}>
+                    Please wait for organizer to log actual observations after the event ends.
+                  </p>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: 'var(--bg-2)', borderRadius: '8px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--text-2)' }}>🔵 Recyclable</span>
-                  <span style={{ fontWeight: 600 }}>{event?.estimatedBins?.recyclable} × 60L bins</span>
-                </div>
-              </div>
-              <p style={{ marginTop: '16px', fontSize: '12px', textAlign: 'center', color: 'var(--text-3)' }}>
-                Total estimated bins for collection: <strong>{totalBins}</strong>
-              </p>
+              )}
             </div>
 
             <div className="card">
