@@ -22,26 +22,38 @@ router.post('/', protect, async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to submit log for this event' })
     }
 
-    const { total, breakdown } = calculateScore({
+    const estimatedTotal = (event.estimatedBins.wet || 0)
+      + (event.estimatedBins.dry || 0)
+      + (event.estimatedBins.recyclable || 0)
+
+    const actualTotal = (req.body.wetFill > 0 ? 1 : 0)
+      + (req.body.dryFill > 0 ? 1 : 0)
+      + (req.body.recycleFill > 0 ? 1 : 0)
+
+    const score = calculateScore({
       segregationStatus: req.body.segregationStatus,
       plateType: event.plateType,
       decorTypes: event.decorTypes,
-      estimatedWet: event.estimatedBins.wet,
-      actualWet: req.body.wetFill,
-      estimatedDry: event.estimatedBins.dry,
-      actualDry: req.body.dryFill,
-      estimatedRecyclable: event.estimatedBins.recyclable,
-      actualRecyclable: req.body.recycleFill
+      estimatedTotal,
+      actualTotal
     })
+
+    const segregation = req.body.segregationStatus === 'yes' ? 40 : req.body.segregationStatus === 'partial' ? 20 : 0;
+    const plates = event.plateType === 'steel' ? 20 : 0;
+    const decor = !(event.decorTypes || []).includes('thermocol') ? 15 : 0;
+    const diff = Math.abs((actualTotal || 0) - (estimatedTotal || 1));
+    const accuracyRaw = Math.max(0, 1 - diff / (estimatedTotal || 1));
+    const accuracy = accuracyRaw >= 0.85 ? 25 : accuracyRaw >= 0.65 ? 15 : accuracyRaw >= 0.40 ? 8 : 0;
+    const breakdown = { segregation, plates, decor, accuracy };
 
     const log = await WasteLog.create({ 
       ...req.body, 
-      score: total,
+      score,
       scoreBreakdown: breakdown
     })
     await Event.findByIdAndUpdate(req.body.eventId, { status: 'completed' })
 
-    res.status(201).json({ log, score: total, breakdown })
+    res.status(201).json({ log, score, breakdown })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

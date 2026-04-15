@@ -182,9 +182,9 @@ export default function RegisterEvent() {
         const payload = {
           eventName: form.name,
           eventType: form.type,
-          guestCount: form.guestCount,
+          guestCount: Number(form.guestCount),
           date: form.date,
-          durationHours: form.duration,
+          durationHours: Number(form.duration) || 4,
           venueName: form.venue,
           startTime: form.startTime,
           endTime: form.endTime,
@@ -192,7 +192,7 @@ export default function RegisterEvent() {
           wardZone: form.ward,
           cateringStyle: form.cateringStyle,
           plateType: form.plateType,
-          bottleCrates: form.bottleCrates,
+          bottleCrates: Number(form.bottleCrates) || 0,
           decorTypes: form.decorTypes,
           catererName: form.caterer,
           catererContact: form.catererContact,
@@ -201,7 +201,7 @@ export default function RegisterEvent() {
           estimatedBins: {
              wet: prediction.wetBins || 0,
              dry: prediction.dryBins || 0,
-             recyclable: prediction.recyclableBins || 0
+             recyclable: prediction.recycleBins || 0
           }
         };
 

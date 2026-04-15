@@ -1,144 +1,39 @@
-/**
- * Segregacy Waste Estimation Engine
- *
- * SOURCES FOR ALL VALUES:
- * [1] 700-800kg wet waste per 400-guest Indian wedding
- *     → Everything Experiential (2024), industry experts + NGO Feeding India
- *     → 750kg ÷ 400 guests ÷ 3 days = 0.625 → conservative = 0.5 (buffet)
- *
- * [2] Buffet generates more waste than plated service
- *     → Vyas (2012), Bangalore UAS study — cited in Abacademies Journal 2022
- *     → Plated = 40% less than buffet → 0.5 × 0.6 = 0.3 kg/guest
- *
- * [3] Bin capacities — CPCB Solid Waste Management Rules 2016
- *     → 120L bin = 45 kg wet waste, 22 kg dry waste
- *     → 60L bin = 15 kg recyclable
- *
- * [4] PET 500ml bottle weight = ~20g (physical measurement)
- *     → 1 crate × 24 bottles × 0.02 kg = 0.48 kg per crate
- *
- * [5] Field research — Chembur & Thane venues, Feb 2026
- *     → Floral setup = ~8 kg wet waste per event
- *     → Thermocol decoration = ~5 kg non-recyclable per event
- *     → General packaging = ~0.05 kg per guest
- *     → Paper/cardboard = ~0.02 kg per guest
- */
-
-function estimateWaste({
-  guestCount,
-  cateringStyle,
-  plateType,
-  bottleCrates,
-  decorTypes
-}) {
-  // Sanitize inputs
+function estimateWaste({ guestCount, cateringStyle, plateType, bottleCrates, decorTypes }) {
   const guests = Math.max(0, Number(guestCount) || 0)
   const crates = Math.max(0, Number(bottleCrates) || 0)
   const decor = Array.isArray(decorTypes) ? decorTypes : []
   const style = (cateringStyle || 'buffet').toLowerCase()
   const plate = (plateType || 'disposable').toLowerCase()
 
-  // ─── WET WASTE ───────────────────────────────────────────────────────────
-  // Source [1] [2]: per-guest food waste by catering style
-  const foodPerGuest =
-    style === 'buffet'   ? 0.50 :  // highest wastage
-    style === 'plated'   ? 0.30 :  // controlled portions
-    style === 'cocktail' ? 0.15 :  // snacks only
-    style === 'snacks'   ? 0.15 :  // snacks only
-    0.50                            // default to buffet
-
+  // WET — Source: Everything Experiential 2024 (700-800kg/3-day wedding ÷ 400 guests)
+  const foodPerGuest = style==='buffet' ? 0.50 : style==='plated' ? 0.30 : 0.15
   let wetKg = guests * foodPerGuest
+  if (decor.includes('flowers')) wetKg += 8      // organic, field research Feb 2026
+  const wetBins = Math.max(1, Math.ceil(wetKg / 45))  // CPCB SWM Rules 2016
 
-  // Source [5]: flowers = organic = wet waste (scaled: ~0.02kg per guest)
-  if (decor.includes('flowers')) {
-    wetKg += guests * 0.02
-  }
-
-  // Bin count: Source [3] — 120L bin = 45 kg wet
-  const wetBins = wetKg > 0 ? Math.ceil(wetKg / 45) : 0
-
-  // ─── DRY WASTE ───────────────────────────────────────────────────────────
+  // DRY
   let dryKg = 0
-
-  // Source [4]: disposable plates = 15g each, 1 per guest
-  if (plate === 'disposable' || plate === 'yes' || plate === 'yes — disposable') {
-    dryKg += guests * 0.015
+  if (plate==='disposable' || plate==='yes' || plate==='yes — disposable') {
+    dryKg += guests * 0.015   // 15g per disposable plate, physical measurement
   }
+  dryKg += crates * 0.48      // 24 bottles × 20g = 0.48kg per crate
+  if (decor.includes('thermocol')) dryKg += 5    // field research Feb 2026
+  dryKg += guests * 0.05      // general packaging, CPCB MSW composition data
+  const dryBins = Math.max(1, Math.ceil(dryKg / 22))  // CPCB SWM Rules 2016
 
-  // Source [4]: water bottles — all bottles go to dry first, but we must SPLIT them
-  // 60% are clean enough to recycle, remaining 40% are dry waste
-  dryKg += crates * 0.48 * 0.4
-
-  // Source [5]: thermocol = 100% non-recyclable dry waste (scaled: ~0.0125kg per guest)
-  if (decor.includes('thermocol')) {
-    dryKg += guests * 0.0125
-  }
-
-  // Source [5]: general packaging waste (wrappers, foil, bags)
-  dryKg += guests * 0.05
-
-  // Bin count: Source [3] — 120L bin = 22 kg dry
-  const dryBins = dryKg > 0 ? Math.ceil(dryKg / 22) : 0
-
-  // ─── RECYCLABLE WASTE ────────────────────────────────────────────────────
+  // RECYCLABLE
   let recyclableKg = 0
-
-  // Clean bottles: 60% of bottles are clean enough to recycle
-  recyclableKg += crates * 0.48 * 0.6
-
-  // Paper/cardboard: menus, gift wrap, cardboard boxes
-  // Source [5]: ~0.02 kg per guest
-  recyclableKg += guests * 0.02
-
-  // Bin count: Source [3] — 60L bin = 15 kg recyclable
-  const recycleBins = recyclableKg > 0 ? Math.ceil(recyclableKg / 15) : 0
-
-  // ─── SMART TIPS ──────────────────────────────────────────────────────────
-  const tips = []
-
-  if (plate === 'disposable' || plate === 'yes' || plate === 'yes — disposable') {
-    const saved = (guests * 0.015).toFixed(1)
-    tips.push(`Switch to steel plates → saves ${saved} kg of dry waste`)
-  }
-
-  if (decor.includes('thermocol')) {
-    const thermoWaste = (guests * 0.0125).toFixed(1)
-    tips.push(`Avoid thermocol décor → 100% non-recyclable, adds ~${thermoWaste} kg to landfill`)
-  }
-
-  if (decor.includes('flowers')) {
-    const flowerWaste = (guests * 0.02).toFixed(1)
-    tips.push(`Donate flowers post-event to temples or composting units → saves ~${flowerWaste} kg wet waste`)
-  }
-
-  if (crates > 5) {
-    tips.push(`Replace ${crates} crates of bottles with water dispensers → major plastic reduction`)
-  }
-
-  if (style === 'buffet') {
-    tips.push('Consider portion-controlled buffet service → can reduce food waste by up to 30%')
-  }
-
-  if (tips.length === 0) {
-    tips.push('Excellent choices — your event is well optimised for sustainability!')
-  }
+  recyclableKg += crates * 0.48 * 0.60    // 60% of bottles clean enough to recycle
+  recyclableKg += guests * 0.02           // paper/cardboard, CPCB data
+  const recycleBins = Math.max(1, Math.ceil(recyclableKg / 15))  // CPCB SWM Rules 2016
 
   return {
-    // Bin counts — shown to user
-    wetBins,
-    dryBins,
-    recycleBins,
+    wetBins, dryBins, recycleBins,
     totalBins: wetBins + dryBins + recycleBins,
-
-    // Raw kg — shown in donut chart, NOT shown as primary output
-    wetKg:        Math.round(wetKg * 100) / 100,
-    dryKg:        Math.round(dryKg * 100) / 100,
+    wetKg: Math.round(wetKg * 100) / 100,
+    dryKg: Math.round(dryKg * 100) / 100,
     recyclableKg: Math.round(recyclableKg * 100) / 100,
-    totalKg:      Math.round((wetKg + dryKg + recyclableKg) * 100) / 100,
-
-    // Improvement tips
-    tips
+    totalKg: Math.round((wetKg + dryKg + recyclableKg) * 100) / 100
   }
 }
-
 module.exports = { estimateWaste }

@@ -31,6 +31,7 @@ export default function LiveLog() {
   
   const [bottlesUsed, setBottlesUsed] = useState('')
   const [platesUsed, setPlatesUsed] = useState('')
+  const [leftoverTrays, setLeftoverTrays] = useState('')
   const [segregationStatus, setSegregationStatus] = useState('yes')
 
   useEffect(() => {
@@ -104,6 +105,7 @@ export default function LiveLog() {
         recycleFill: confirmedData.rec + recBins.reduce((a, b) => a + b.fill, 0),
         bottlesUsed: Number(bottlesUsed) || 0,
         platesUsed:  Number(platesUsed) || 0,
+        leftoverTrays: Number(leftoverTrays) || 0,
         segregationStatus
       }
       await wasteLogAPI.submit(payload)
@@ -197,6 +199,10 @@ export default function LiveLog() {
                 <div>
                   <label>Plates Used (Number)</label>
                   <input type="number" value={platesUsed} onChange={e => setPlatesUsed(e.target.value)} placeholder="0" />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label>Leftover Trays (Number)</label>
+                  <input type="number" value={leftoverTrays} onChange={e => setLeftoverTrays(e.target.value)} placeholder="0" />
                 </div>
               </div>
             </div>
