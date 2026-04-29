@@ -61,10 +61,11 @@ export default function Report() {
   const grade = score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : score >= 40 ? 'Average' : 'Poor'
   const gradeColor = score >= 80 ? 'var(--accent)' : score >= 60 ? '#6366f1' : score >= 40 ? '#f59e0b' : '#ef4444'
 
-  // Metrics
-  const actualBins = (Number(wasteLog?.wetFill) || 0)
-    + (Number(wasteLog?.dryFill) || 0)
-    + (Number(wasteLog?.recycleFill) || 0)
+  // Metrics — ceil() converts fill-sums to physical bin counts
+  const actualWetBins = Math.ceil(Number(wasteLog?.wetFill) || 0)
+  const actualDryBins = Math.ceil(Number(wasteLog?.dryFill) || 0)
+  const actualRecBins = Math.ceil(Number(wasteLog?.recycleFill) || 0)
+  const actualBins = actualWetBins + actualDryBins + actualRecBins
   const estimatedTotal = (event?.estimatedBins?.wet || 0)
     + (event?.estimatedBins?.dry || 0)
     + (event?.estimatedBins?.recyclable || 0)
@@ -131,20 +132,20 @@ export default function Report() {
                   <tr style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '12px 8px' }}>Wet Bins</td>
                     <td style={{ padding: '12px 8px' }}>{event?.estimatedBins?.wet} bins</td>
-                    <td style={{ padding: '12px 8px' }}>{wasteLog?.wetFill || 0} bins</td>
-                    <td style={{ padding: '12px 8px' }}>{wasteLog?.wetFill <= (event?.estimatedBins?.wet || 0) ? '✓ On track' : '⚠ Over'}</td>
+                    <td style={{ padding: '12px 8px' }}>{actualWetBins} bins</td>
+                    <td style={{ padding: '12px 8px' }}>{actualWetBins <= (event?.estimatedBins?.wet || 0) ? '✓ On track' : '⚠ Over'}</td>
                   </tr>
                   <tr style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '12px 8px' }}>Dry Bins</td>
                     <td style={{ padding: '12px 8px' }}>{event?.estimatedBins?.dry} bins</td>
-                    <td style={{ padding: '12px 8px' }}>{wasteLog?.dryFill || 0} bins</td>
-                    <td style={{ padding: '12px 8px' }}>{wasteLog?.dryFill <= (event?.estimatedBins?.dry || 0) ? '✓ On track' : '⚠ Over'}</td>
+                    <td style={{ padding: '12px 8px' }}>{actualDryBins} bins</td>
+                    <td style={{ padding: '12px 8px' }}>{actualDryBins <= (event?.estimatedBins?.dry || 0) ? '✓ On track' : '⚠ Over'}</td>
                   </tr>
                   <tr>
                     <td style={{ padding: '12px 8px' }}>Recyclable Bins</td>
                     <td style={{ padding: '12px 8px' }}>{event?.estimatedBins?.recyclable} bins</td>
-                    <td style={{ padding: '12px 8px' }}>{wasteLog?.recycleFill || 0} bins</td>
-                    <td style={{ padding: '12px 8px' }}>{wasteLog?.recycleFill <= (event?.estimatedBins?.recyclable || 0) ? '✓ On track' : '⚠ Over'}</td>
+                    <td style={{ padding: '12px 8px' }}>{actualRecBins} bins</td>
+                    <td style={{ padding: '12px 8px' }}>{actualRecBins <= (event?.estimatedBins?.recyclable || 0) ? '✓ On track' : '⚠ Over'}</td>
                   </tr>
                 </tbody>
               </table>
