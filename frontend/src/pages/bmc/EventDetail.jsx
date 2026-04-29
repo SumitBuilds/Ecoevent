@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { eventAPI, bmcAPI } from '../../services/api'
+import { eventAPI, bmcAPI, bmcFleetAPI, bmcCompletionAPI } from '../../services/api'
 import PageWrapper from '../../components/shared/PageWrapper'
 import { RiTruckLine, RiTimeLine, RiMapPinLine, RiUserLine, RiPhoneLine } from 'react-icons/ri'
 
@@ -13,8 +13,12 @@ export default function EventDetail() {
   const [loading, setLoading] = useState(true)
   const [pickupDone, setPickupDone] = useState(false)
   const [confirming, setConfirming] = useState(false)
-  const [truck, setTruck] = useState('Truck 1')
-  const [time, setTime] = useState('22:00 – 00:00')
+  const [time, setTime] = useState('')
+  const [availableWorkers, setAvailableWorkers] = useState([])
+  const [selectedWorkerId, setSelectedWorkerId] = useState('')
+  const [jobAssignment, setJobAssignment] = useState(null)
+  const [showPhotoModal, setShowPhotoModal] = useState(false)
+  const [bmcConfirming, setBmcConfirming] = useState(false)
 
   const fetchEvent = () => {
     eventAPI.getOne(id)
@@ -22,6 +26,7 @@ export default function EventDetail() {
         setEvent(res.data.event)
         setPickupSlot(res.data.pickupSlot)
         setWasteLog(res.data.wasteLog)
+        setJobAssignment(res.data.jobAssignment) // Now provided directly by the main event API
         if (res.data.pickupSlot?.status === 'completed') setPickupDone(true)
       })
       .catch(console.error)
@@ -30,32 +35,37 @@ export default function EventDetail() {
 
   useEffect(() => { fetchEvent() }, [id])
 
+  // Fetch available workers for the dropdown
+  useEffect(() => {
+    bmcFleetAPI.getAvailable()
+      .then(res => setAvailableWorkers(res.data.workers || []))
+      .catch(console.error)
+  }, [])
+
   const handleConfirm = async () => {
     if (!pickupSlot?._id) return
+    if (!selectedWorkerId) {
+      alert('Worker assignment is mandatory. Please select a worker before confirming.')
+      return
+    }
+    if (!time.trim()) {
+      alert('Please enter a pickup time window')
+      return
+    }
     setConfirming(true)
     try {
       await bmcAPI.confirmSlot(pickupSlot._id, {
-        truckId: truck,
-        scheduledTime: time
+        scheduledTime: time,
+        workerId: selectedWorkerId
       })
-      await fetchEvent() // refresh to show confirmed state
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setConfirming(false)
-    }
-  }
-
-  const handleComplete = async () => {
-    if (!pickupSlot?._id) return
-    try {
-      await bmcAPI.completeSlot(pickupSlot._id)
-      setPickupDone(true)
       await fetchEvent()
     } catch (err) {
       console.error(err)
-    }
+      alert(err.response?.data?.error || 'Failed to confirm. Try again.')
+    } finally { setConfirming(false) }
   }
+
+
 
   if (loading) return (
     <PageWrapper role="bmc">
@@ -66,13 +76,24 @@ export default function EventDetail() {
   )
 
   const timeline = [
-    { step: 'Registered',   done: true },
-    { step: 'BMC Notified', done: true },
-    { step: 'Slot Assigned', done: pickupSlot?.status === 'confirmed' || pickupSlot?.status === 'completed' },
-    { step: 'Event Day',    done: new Date(event?.date) < new Date() },
-    { step: 'Waste Log',    done: event?.status === 'completed' },
-    { step: 'Certificate',  done: event?.status === 'completed' },
+    { step: 'Event Registered',   done: true },
+    { step: 'Waste Log Submitted', done: !!wasteLog },
+    { step: 'Pickup Scheduled',   done: pickupSlot?.status !== 'pending' },
+    { step: 'Worker Accepted',    done: jobAssignment && jobAssignment.workerStatus !== 'pending_accept' },
+    { step: 'Pickup Verified',    done: !!jobAssignment?.bmcVerifiedAt },
+    { step: 'Certificate Released',  done: event?.status === 'completed' },
   ]
+
+  // Determine sub-status for better display
+  const getSubStatus = () => {
+    if (pickupSlot?.status === 'completed') return 'Pickup Completed';
+    if (jobAssignment) {
+      if (jobAssignment.workerStatus === 'pending_accept') return 'Awaiting Worker Acceptance';
+      if (jobAssignment.workerStatus === 'accepted') return 'Worker En Route';
+      if (jobAssignment.workerStatus === 'worker_completed') return 'Awaiting BMC Final Review';
+    }
+    return pickupSlot?.status || 'Pending';
+  };
 
   const actualBins = wasteLog 
     ? (wasteLog.wetFill || 0) + (wasteLog.dryFill || 0) + (wasteLog.recycleFill || 0)
@@ -91,10 +112,16 @@ export default function EventDetail() {
             <h1 className="heading-2">{event?.eventName}</h1>
             <span style={{
               padding: '4px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase',
-              background: pickupSlot?.status === 'confirmed' ? 'rgba(201,168,76,0.1)' : 'rgba(245,158,11,0.1)',
-              color: pickupSlot?.status === 'confirmed' ? 'var(--accent)' : '#f59e0b'
+              background: 
+                getSubStatus().includes('Completed') ? 'rgba(34,197,94,0.1)' :
+                getSubStatus().includes('Awaiting') ? 'rgba(245,158,11,0.1)' :
+                getSubStatus().includes('En Route') ? 'rgba(59,130,246,0.1)' : 'rgba(201,168,76,0.1)',
+              color: 
+                getSubStatus().includes('Completed') ? '#22c55e' :
+                getSubStatus().includes('Awaiting') ? '#f59e0b' :
+                getSubStatus().includes('En Route') ? '#3b82f6' : 'var(--accent)'
             }}>
-              {pickupSlot?.status || 'pending'}
+              {getSubStatus()}
             </span>
           </div>
         </div>
@@ -196,66 +223,190 @@ export default function EventDetail() {
           <div className="event-detail__aside">
             <div className="card" style={{ marginBottom: '24px' }}>
               <h4 className="heading-4" style={{ marginBottom: '16px' }}>Pickup Management</h4>
-              {pickupDone || pickupSlot?.status === 'completed' ? (
+              {pickupSlot?.status === 'completed' ? (
                 <div style={{
-                  background: 'rgba(201,168,76,0.1)',
-                  border: '1px solid rgba(201,168,76,0.3)',
+                  background: 'rgba(34,197,94,0.1)',
+                  border: '1px solid rgba(34,197,94,0.3)',
                   borderRadius: '10px', padding: '14px'
                 }}>
-                  <p style={{ color: 'var(--accent)', fontWeight: 600, margin: 0 }}>✓ Pickup Completed</p>
+                  <p style={{ color: '#22c55e', fontWeight: 600, margin: 0 }}>✓ Pickup Fully Completed</p>
                   <p style={{ color: 'var(--text-2)', fontSize: '12px', marginTop: '4px', margin: 0 }}>
-                    Waste collected. Event lifecycle closed. Audit log updated.
+                    Verification finished. Certificate released to organizer.
                   </p>
                 </div>
               ) : pickupSlot?.status === 'confirmed' ? (
                 <div>
                   <p style={{ color: 'var(--accent)', fontWeight: 600, marginBottom: '8px', fontSize: '14px' }}>
-                    ✓ Confirmed — {pickupSlot.truckId} · {pickupSlot.scheduledTime}
+                    ✓ Logic Set — {pickupSlot.truckId} · {pickupSlot.scheduledTime}
                   </p>
-                  <button className="btn-primary btn-full" onClick={handleComplete}>
-                    Mark Pickup Complete
-                  </button>
+                  
+                  {jobAssignment ? (
+                    <div style={{
+                      marginTop: '12px', padding: '12px',
+                      background: jobAssignment.workerStatus === 'pending_accept' ? 'rgba(245,158,11,0.05)' : 'var(--bg)',
+                      border: jobAssignment.workerStatus === 'pending_accept' ? '1px dashed #f59e0b' : '1px solid var(--border)',
+                      borderRadius: '10px'
+                    }}>
+                      <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-1)', marginBottom: '6px' }}>
+                        Assignment Status
+                      </p>
+                      <p style={{ fontSize: '12px', color: 'var(--text-2)' }}>
+                        👷 {jobAssignment.workerId?.name} ({jobAssignment.workerId?.truckName})
+                      </p>
+                      
+                      <div style={{
+                        marginTop: '10px', padding: '8px', borderRadius: '6px',
+                        background: 'var(--bg-2)', textAlign: 'center'
+                      }}>
+                        <p style={{ fontSize: '12px', margin: 0, fontWeight: 700, 
+                          color: jobAssignment.workerStatus === 'pending_accept' ? '#f59e0b' : 
+                                 jobAssignment.workerStatus === 'accepted' ? '#3b82f6' : 'var(--accent)' 
+                        }}>
+                          {jobAssignment.workerStatus === 'pending_accept' ? '⏳ Awaiting worker to accept...' :
+                           jobAssignment.workerStatus === 'accepted' ? '🚛 Pickup in Progress' :
+                           '✓ Work Completed / Proof Sent'}
+                        </p>
+                      </div>
+
+                      {/* Show proof photo if worker completed */}
+                      {jobAssignment.workerStatus === 'worker_completed' && jobAssignment.proofPhotoBase64 && (
+                        <div style={{ marginTop: '10px' }}>
+                          <img
+                            src={jobAssignment.proofPhotoBase64}
+                            alt="Worker proof"
+                            onClick={() => setShowPhotoModal(true)}
+                            style={{
+                              width: '100%', maxHeight: '160px',
+                              objectFit: 'cover', borderRadius: '8px',
+                              border: '1px solid var(--border)', cursor: 'pointer'
+                            }}
+                          />
+                          <p style={{ fontSize: '11px', color: 'var(--text-2)', marginTop: '4px', textAlign: 'center' }}>
+                            Click to enlarge · Photo by {jobAssignment.workerId?.name}
+                          </p>
+
+                          {!jobAssignment.bmcVerifiedAt && (
+                            <button
+                              onClick={async () => {
+                                setBmcConfirming(true)
+                                try {
+                                  await bmcCompletionAPI.bmcConfirmComplete(pickupSlot._id)
+                                  await fetchEvent()
+                                } catch (err) {
+                                  alert(err.response?.data?.error || 'Failed')
+                                } finally { setBmcConfirming(false) }
+                              }}
+                              disabled={bmcConfirming}
+                              style={{
+                                marginTop: '10px', width: '100%', padding: '12px',
+                                background: 'var(--accent)', color: '#071007',
+                                border: 'none', borderRadius: '50px',
+                                fontFamily: 'DM Sans, sans-serif', fontSize: '13px',
+                                fontWeight: 600, cursor: 'pointer'
+                              }}
+                            >
+                              {bmcConfirming ? 'Confirming...' : '✓ Confirm Pickup Complete'}
+                            </button>
+                          )}
+
+                          {jobAssignment.bmcVerifiedAt && (
+                            <p style={{ color: 'var(--accent)', fontSize: '12px', fontWeight: 600, marginTop: '8px', textAlign: 'center' }}>
+                              ✓ BMC Confirmed · {new Date(jobAssignment.bmcVerifiedAt).toLocaleString('en-IN')}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: '12px', color: 'var(--text-2)', marginTop: '8px' }}>
+                      No worker assigned yet
+                    </p>
+                  )}
+                  {(!jobAssignment || jobAssignment.workerStatus !== 'worker_completed') && (
+                    <div style={{ marginTop: '12px', padding: '10px', background: 'rgba(239,68,68,0.05)', border: '1px dashed rgba(239,68,68,0.3)', borderRadius: '8px', textAlign: 'center' }}>
+                      <p style={{ fontSize: '11px', color: 'var(--text-3)', margin: 0 }}>
+                        Awaiting worker photo proof submission. Manual force-completion is disabled.
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <p style={{ color: '#f59e0b', fontWeight: 500, fontSize: '13px' }}>⏳ Awaiting Slot Assignment</p>
+                  
+                  {/* Real worker dropdown */}
                   <div>
-                    <label style={{ fontSize: '11px' }}>Assign Truck</label>
+                    <label style={{
+                      display: 'block', fontSize: '11px', fontWeight: 500,
+                      color: 'var(--text-2)', textTransform: 'uppercase',
+                      letterSpacing: '0.08em', marginBottom: '6px'
+                    }}>
+                      Assign Worker & Truck
+                    </label>
                     <select
-                      value={truck}
-                      onChange={e => setTruck(e.target.value)}
+                      value={selectedWorkerId}
+                      onChange={e => setSelectedWorkerId(e.target.value)}
                       style={{
-                        width: '100%', padding: '9px 12px', background: 'var(--bg)',
-                        border: '1px solid var(--border)', borderRadius: '8px',
-                        color: 'var(--text-1)', fontSize: '13px'
+                        width: '100%', padding: '10px 12px',
+                        background: 'var(--bg)', border: '1px solid var(--border)',
+                        borderRadius: '8px', fontFamily: 'DM Sans, sans-serif',
+                        fontSize: '13px', color: 'var(--text-1)', outline: 'none'
                       }}
                     >
-                      <option>Truck 1</option>
-                      <option>Truck 2</option>
-                      <option>Truck 3</option>
+                      <option value="">Select available worker...</option>
+                      {availableWorkers.map(w => (
+                        <option key={w._id} value={w._id}>
+                          {w.name} — {w.truckName} {w.truckCapacity ? `(${w.truckCapacity})` : ''} · Shift: {w.shiftStart}–{w.shiftEnd}
+                        </option>
+                      ))}
+                      {availableWorkers.length === 0 && (
+                        <option disabled>No workers available right now</option>
+                      )}
                     </select>
                   </div>
+
                   <div>
-                    <label style={{ fontSize: '11px' }}>Pickup Time Window</label>
+                    <label style={{
+                      display: 'block', fontSize: '11px', fontWeight: 500,
+                      color: 'var(--text-2)', textTransform: 'uppercase',
+                      letterSpacing: '0.08em', marginBottom: '6px'
+                    }}>
+                      Pickup Time Window
+                    </label>
                     <input
                       type="text"
                       value={time}
                       onChange={e => setTime(e.target.value)}
-                      placeholder="e.g. 22:00 – 00:00"
+                      placeholder="e.g. 11:00 PM – 1:00 AM"
                       style={{
-                        width: '100%', padding: '9px 12px', background: 'var(--bg)',
-                        border: '1px solid var(--border)', borderRadius: '8px',
-                        color: 'var(--text-1)', fontSize: '13px'
+                        width: '100%', padding: '10px 12px',
+                        background: 'var(--bg)', border: '1px solid var(--border)',
+                        borderRadius: '8px', fontFamily: 'DM Sans, sans-serif',
+                        fontSize: '13px', color: 'var(--text-1)', outline: 'none'
                       }}
                     />
                   </div>
+
+                  {!selectedWorkerId && (
+                    <p style={{
+                      fontSize: '11px', color: '#ef4444', fontWeight: 500,
+                      marginTop: '4px', marginBottom: '0'
+                    }}>
+                      ⚠ Worker selection is mandatory to confirm this pickup.
+                    </p>
+                  )}
+
                   <button
                     className="btn-primary"
                     onClick={handleConfirm}
-                    disabled={confirming}
-                    style={{ marginTop: '5px' }}
+                    disabled={confirming || !selectedWorkerId}
+                    style={{
+                      marginTop: '5px',
+                      opacity: !selectedWorkerId ? 0.5 : 1,
+                      cursor: !selectedWorkerId ? 'not-allowed' : 'pointer'
+                    }}
                   >
-                    {confirming ? 'Confirming...' : 'Confirm Pickup'}
+                    {confirming ? 'Confirming...' : !selectedWorkerId ? '🔒 Select Worker to Confirm' : 'Confirm Pickup'}
                   </button>
                 </div>
               )}
@@ -277,6 +428,22 @@ export default function EventDetail() {
           </div>
         </div>
       </div>
+
+      {/* Full photo modal */}
+      {showPhotoModal && jobAssignment?.proofPhotoBase64 && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.9)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, padding: '20px'
+        }} onClick={() => setShowPhotoModal(false)}>
+          <img
+            src={jobAssignment.proofPhotoBase64}
+            alt="Proof"
+            style={{ maxWidth: '90%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '10px' }}
+          />
+        </div>
+      )}
     </PageWrapper>
   )
 }

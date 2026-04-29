@@ -115,12 +115,28 @@ router.get('/stats', protect, roleGuard('bmc'), async (req, res) => {
 // PATCH /api/bmc/slots/:id/confirm — confirm a pickup slot
 router.patch('/slots/:id/confirm', protect, roleGuard('bmc'), async (req, res) => {
   try {
-    const { truckId, scheduledTime } = req.body
+    const { truckId, scheduledTime, workerId } = req.body
+    if (!workerId) {
+      return res.status(400).json({ error: 'Worker selection is mandatory. Please assign a worker before confirming the pickup.' })
+    }
+    if (!scheduledTime) {
+      return res.status(400).json({ error: 'Pickup time window is required.' })
+    }
+
+    const Worker = require('../models/Worker')
+    const JobAssignment = require('../models/JobAssignment')
+    // PRE-VALIDATE WORKER BEFORE UPDATING SLOT (worker is mandatory)
+    const worker = await Worker.findById(workerId)
+    if (!worker) return res.status(404).json({ error: 'Selected worker not found' })
+    if (worker.status !== 'idle') {
+      return res.status(400).json({ error: 'Worker is currently assigned or busy. Please refresh and select an idle worker.' })
+    }
+
+    // Update pickup slot (truckId is auto-derived from assigned worker)
     const slot = await PickupSlot.findByIdAndUpdate(
       req.params.id,
       {
-        truckId,
-        scheduledTime,
+        truckId: worker.truckId, scheduledTime,
         status: 'confirmed',
         bmcOfficerId: req.user.id,
         confirmedAt: new Date(),
@@ -128,49 +144,79 @@ router.patch('/slots/:id/confirm', protect, roleGuard('bmc'), async (req, res) =
       },
       { new: true }
     )
+
     if (!slot) return res.status(404).json({ error: 'Slot not found' })
+
+    // Cancel any existing pending assignment for this slot
+    await JobAssignment.deleteMany({
+      pickupSlotId: req.params.id,
+      workerStatus: 'pending_accept'
+    })
+    // Create new job assignment
+    await JobAssignment.create({
+      pickupSlotId: slot._id,
+      eventId: slot.eventId,
+      workerId: worker._id,
+      assignedBy: req.user.id,
+      workerStatus: 'pending_accept'
+    })
+    // Update worker status to assigned
+    worker.status = 'assigned'
+    await worker.save()
+
     res.json({ slot })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
 
-// PATCH /api/bmc/slots/:id/complete — mark pickup as done
+// PATCH /api/bmc/slots/:id/complete — mark pickup as done (Legacy/Fallback)
 router.patch('/slots/:id/complete', protect, roleGuard('bmc'), async (req, res) => {
   try {
     const slot = await PickupSlot.findById(req.params.id).populate('eventId')
     if (!slot) return res.status(404).json({ error: 'Slot not found' })
 
-    const event = slot.eventId
-    if (event && event.date && event.endTime) {
-      const now = new Date()
-      const [endH, endM] = event.endTime.split(':').map(Number)
-      const [startH, startM] = (event.startTime || "00:00").split(':').map(Number)
-      
-      // event.date is YYYY-MM-DD
-      let eventEndDate = new Date(event.date)
-      eventEndDate.setHours(endH, endM, 0, 0)
-
-      // Handle events ending past midnight
-      // If end time is earlier than start time, it ends the next day
-      const startTimeMinutes = startH * 60 + startM
-      const endTimeMinutes = endH * 60 + endM
-      
-      if (endTimeMinutes < startTimeMinutes) {
-        eventEndDate.setDate(eventEndDate.getDate() + 1)
-      }
-
-      if (now < eventEndDate) {
-        return res.status(400).json({ 
-          error: `Event "${event.eventName}" is still ongoing. Pickup can only be completed after it ends at ${event.endTime}.` 
-        })
-      }
-    }
-
     slot.status = 'completed'
     await slot.save()
 
     res.json({ slot })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// PATCH /api/bmc/slots/:id/bmc-confirm-complete
+// NEW WORKFLOW: BMC reviews worker photo and confirms pickup
+router.patch('/slots/:id/bmc-confirm-complete', protect, roleGuard('bmc'), async (req, res) => {
+  try {
+    const slot = await PickupSlot.findById(req.params.id)
+    if (!slot) return res.status(404).json({ error: 'Slot not found' })
+
+    const JobAssignment = require('../models/JobAssignment')
+    const Worker = require('../models/Worker')
+
+    // 1. Verify that job exists and worker has uploaded proof
+    const job = await JobAssignment.findOne({ pickupSlotId: slot._id, workerStatus: 'worker_completed' })
+    if (!job) {
+      return res.status(400).json({ error: 'Worker has not completed this job or submitted proof yet.' })
+    }
+
+    // 2. Mark Job as BMC verified
+    job.bmcVerifiedAt = new Date()
+    await job.save()
+
+    // 3. Mark Slot as completed
+    slot.status = 'completed'
+    await slot.save()
+
+    // 4. ALSO mark the Event as officially completed now that BMC has verified pickup
+    const Event = require('../models/Event')
+    await Event.findByIdAndUpdate(slot.eventId, { status: 'completed' })
+
+    // 5. Free up the worker so they can take new jobs
+    await Worker.findByIdAndUpdate(job.workerId, { status: 'idle' })
+
+    res.json({ slot, job, message: 'Pickup confirmed and worker released.' })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

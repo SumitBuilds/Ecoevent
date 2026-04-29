@@ -18,11 +18,11 @@ router.post('/', protect, roleGuard('organizer'), async (req, res) => {
     const duration = Number(durationHours) || 4
 
     const estimatedBins = estimateWaste({
-      guestCount:    guests,
+      guestCount: guests,
       cateringStyle: req.body.cateringStyle,
-      plateType:     req.body.plateType,
-      bottleCrates:  crates,
-      decorTypes:    req.body.decorTypes
+      plateType: req.body.plateType,
+      bottleCrates: crates,
+      decorTypes: req.body.decorTypes
     })
 
     const event = await Event.create({
@@ -32,11 +32,11 @@ router.post('/', protect, roleGuard('organizer'), async (req, res) => {
       durationHours: duration,
       organizerId: req.user.id,
       estimatedBins: {
-        wet:          estimatedBins.wetBins,
-        dry:          estimatedBins.dryBins,
-        recyclable:   estimatedBins.recycleBins,
-        wetKg:        estimatedBins.wetKg,
-        dryKg:        estimatedBins.dryKg,
+        wet: estimatedBins.wetBins,
+        dry: estimatedBins.dryBins,
+        recyclable: estimatedBins.recycleBins,
+        wetKg: estimatedBins.wetKg,
+        dryKg: estimatedBins.dryKg,
         recyclableKg: estimatedBins.recyclableKg
       }
     })
@@ -80,6 +80,12 @@ router.get('/:id', protect, async (req, res) => {
     const slot = await PickupSlot.findOne({ eventId: req.params.id })
     const log = await WasteLog.findOne({ eventId: req.params.id })
 
+    // Find latest job assignment and populate worker details
+    const JobAssignment = require('../models/JobAssignment')
+    const jobAssignment = await JobAssignment.findOne({ eventId: req.params.id })
+      .populate('workerId', 'name truckName truckId phone employeeId')
+      .sort({ assignedAt: -1 })
+
     const eventObj = event.toObject()
 
     // CRITICAL: Hide predictions from BMC officer
@@ -87,11 +93,79 @@ router.get('/:id', protect, async (req, res) => {
       delete eventObj.estimatedBins
     }
 
-    res.json({ 
-      event: eventObj, 
+    res.json({
+      event: eventObj,
       pickupSlot: slot,
-      wasteLog: log
+      wasteLog: log,
+      jobAssignment: jobAssignment || null
     })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// GET /api/events/pending-confirmations — organizer sees events BMC completed
+router.get('/pending-confirmations', protect, roleGuard('organizer'), async (req, res) => {
+  try {
+    const PickupSlot = require('../models/PickupSlot')
+    const events = await Event.find({ organizerId: req.user.id })
+    const eventIds = events.map(e => e._id)
+
+    const slots = await PickupSlot.find({
+      eventId: { $in: eventIds },
+      status: 'completed',
+      organizerConfirmed: false
+    }).populate('eventId', 'eventName date venueName guestCount estimatedBins')
+
+    res.json({ pendingConfirmations: slots })
+  } catch (err) { res.status(500).json({ error: err.message }) }
+})
+
+// PATCH /api/events/slots/:slotId/organizer-confirm
+router.patch('/slots/:slotId/organizer-confirm', protect, roleGuard('organizer'), async (req, res) => {
+  try {
+    const PickupSlot = require('../models/PickupSlot')
+    const slot = await PickupSlot.findByIdAndUpdate(
+      req.params.slotId,
+      { organizerConfirmed: true, organizerConfirmedAt: new Date() },
+      { new: true }
+    )
+    if (!slot) return res.status(404).json({ error: 'Slot not found' })
+    res.json({ slot, message: 'Confirmed' })
+  } catch (err) { res.status(500).json({ error: err.message }) }
+})
+
+// DELETE /api/events/:id — organizer deletes their event
+router.delete('/:id', protect, roleGuard('organizer'), async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id)
+    if (!event) return res.status(404).json({ error: 'Event not found' })
+
+    // Ensure only the organizer who created it can delete it
+    if (event.organizerId.toString() !== req.user.id) {
+      return res.status(403).json({ error: 'Not authorized to delete this event' })
+    }
+
+    const JobAssignment = require('../models/JobAssignment')
+    const Worker = require('../models/Worker')
+
+    // Find any active jobs for this event and reset worker status to idle
+    const activeJobs = await JobAssignment.find({ eventId: event._id })
+    for (const job of activeJobs) {
+      if (job.workerId) {
+        await Worker.findByIdAndUpdate(job.workerId, { status: 'idle' })
+      }
+    }
+
+    // Cascade delete associated records
+    await PickupSlot.deleteMany({ eventId: event._id })
+    await WasteLog.deleteMany({ eventId: event._id })
+    await JobAssignment.deleteMany({ eventId: event._id })
+    
+    // Delete the event itself
+    await Event.findByIdAndDelete(req.params.id)
+
+    res.json({ message: 'Event deleted successfully' })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

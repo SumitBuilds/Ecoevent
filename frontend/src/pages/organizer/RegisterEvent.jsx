@@ -180,24 +180,43 @@ export default function RegisterEvent() {
            : form.pickupTimeRange;
         
         const payload = {
-          eventName: form.name,
-          eventType: form.type,
-          guestCount: Number(form.guestCount),
-          date: form.date,
-          durationHours: Number(form.duration) || 4,
-          venueName: form.venue,
-          startTime: form.startTime,
-          endTime: form.endTime,
+          eventName:       form.name.trim(),
+          eventType:       form.type,
+          guestCount:      Number(form.guestCount) || 0,
+          date:            form.date,
+          durationHours:   Number(form.duration) || 4,
+          venueName:       form.venue.trim(),
+          startTime:       form.startTime,
+          endTime:         form.endTime,
           pickupTimeRange: generatedPickupTimeRange,
-          wardZone: form.ward,
-          cateringStyle: form.cateringStyle,
-          plateType: form.plateType,
-          bottleCrates: Number(form.bottleCrates) || 0,
-          decorTypes: form.decorTypes,
-          catererName: form.caterer,
-          catererContact: form.catererContact,
-          decoratorName: form.decorator,
-          decoratorContact: form.decoratorContact,
+          wardZone:        form.ward,
+
+          // CRITICAL: send lowercase for formula matching
+          cateringStyle:   (form.cateringStyle || 'buffet').toLowerCase(),
+
+          // CRITICAL: must be exactly "disposable" or "steel"
+          plateType: (() => {
+            const p = (form.plateType || '').toLowerCase()
+            if (p.includes('steel') || p.includes('reusable')) return 'steel'
+            return 'disposable'
+          })(),
+
+          // CRITICAL: must be a number
+          bottleCrates:    Number(form.bottleCrates) || 0,
+
+          // CRITICAL: must be an array of lowercase strings, no "none" value
+          decorTypes: (() => {
+            if (!form.decorTypes || form.decorTypes.length === 0) return []
+            if (typeof form.decorTypes === 'string') return form.decorTypes === 'none' ? [] : [form.decorTypes.toLowerCase()]
+            return form.decorTypes
+              .filter(d => d && d.toLowerCase() !== 'none')
+              .map(d => d.toLowerCase())
+          })(),
+
+          catererName:      form.caterer || '',
+          catererContact:   form.catererContact || '',
+          decoratorName:    form.decorator || '',
+          decoratorContact: form.decoratorContact || '',
           estimatedBins: {
              wet: prediction.wetBins || 0,
              dry: prediction.dryBins || 0,

@@ -12,6 +12,12 @@ export default function Login() {
 
   // If already logged in, redirect away automatically
   React.useEffect(() => {
+    const worker = localStorage.getItem('ecoevent_worker');
+    if (worker) {
+      navigate('/worker/dashboard');
+      return;
+    }
+
     if (user) {
       if (user.role === 'bmc') navigate('/bmc/overview')
       else navigate('/organizer/dashboard')
@@ -134,11 +140,33 @@ export default function Login() {
           </Link>
         </p>
 
+        <div style={{
+          marginTop: '24px', paddingTop: '24px',
+          borderTop: '1px solid var(--border)', textAlign: 'center'
+        }}>
+          <p style={{ fontSize: '11px', color: 'var(--text-3)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Looking for the field portal?
+          </p>
+          <Link 
+            to="/worker/login" 
+            style={{ 
+              display: 'inline-block', padding: '8px 20px',
+              border: '1px solid var(--border)', borderRadius: '50px',
+              color: 'var(--text-2)', fontSize: '12px', fontWeight: 500,
+              textDecoration: 'none', transition: 'all 0.2s'
+            }}
+            onMouseOver={e => e.target.style.background = 'var(--bg)'}
+            onMouseOut={e => e.target.style.background = 'transparent'}
+          >
+            Worker / Driver Portal →
+          </Link>
+        </div>
+
         <p style={{
-          textAlign: 'center', marginTop: '8px',
+          textAlign: 'center', marginTop: '20px',
           fontSize: '11px', color: 'var(--text-3)'
         }}>
-          Works for both Organizers and BMC Officers
+          Organizer and BMC accounts use the main login above.
         </p>
       </div>
     </div>

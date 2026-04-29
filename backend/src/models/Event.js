@@ -29,6 +29,7 @@ const eventSchema = new mongoose.Schema({
     dryKg:        { type: Number, default: 0 },
     recyclableKg: { type: Number, default: 0 }
   },
+  score: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now }
 })
 

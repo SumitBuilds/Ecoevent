@@ -8,7 +8,9 @@ const pickupSlotSchema = new mongoose.Schema({
   wardZone:          { type: String, required: true },
   status:            { type: String, enum: ['pending','confirmed','completed'], default: 'pending' },
   confirmedAt:       { type: Date, default: null },
-  organizerNotified: { type: Boolean, default: false }
+  organizerNotified: { type: Boolean, default: false },
+  organizerConfirmed:   { type: Boolean, default: false },
+  organizerConfirmedAt: { type: Date, default: null }
 })
 
 module.exports = mongoose.model('PickupSlot', pickupSlotSchema)

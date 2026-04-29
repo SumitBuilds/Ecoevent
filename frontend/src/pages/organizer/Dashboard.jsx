@@ -4,7 +4,7 @@ import StatCard from '../../components/shared/StatCard';
 import Badge from '../../components/shared/Badge';
 import { RiCalendarLine, RiLeafLine, RiDeleteBinLine, RiMedalLine, RiArrowRightSLine } from 'react-icons/ri';
 import { Link, useNavigate } from 'react-router-dom';
-import { eventAPI } from '../../services/api';
+import { eventAPI, organizerConfirmAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import './Dashboard.css';
 
@@ -13,17 +13,39 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [pendingPickupConfirmations, setPendingPickupConfirmations] = useState([]);
+  const [confirmingPickup, setConfirmingPickup] = useState(null);
 
   useEffect(() => {
     eventAPI.getAll()
       .then(res => setEvents(res.data.events))
       .catch(err => console.error("Failed to load events", err))
       .finally(() => setLoading(false));
+
+    organizerConfirmAPI.getPendingConfirmations()
+      .then(res => setPendingPickupConfirmations(res.data.pendingConfirmations || []))
+      .catch(console.error);
   }, []);
 
+  const handleDeleteEvent = async (eventId, eventName, ev) => {
+    ev.stopPropagation(); // Prevent row click
+    if (window.confirm(`Are you sure you want to delete "${eventName}"? This action cannot be undone.`)) {
+      try {
+        await eventAPI.delete(eventId);
+        setEvents(events.filter(e => e._id !== eventId));
+      } catch (err) {
+        console.error("Failed to delete event", err);
+        alert(err.response?.data?.error || "Failed to delete event");
+      }
+    }
+  };
+
   const totalEvents = events.length;
-  // Fallback map: actual score would be tracked in WasteLogs but 0 for now until wired
-  const avgScore = 0; 
+  // Calculate real average score from completed/scored events
+  const scoredEvents = events.filter(e => (e.score || 0) > 0);
+  const avgScore = scoredEvents.length 
+    ? Math.round(scoredEvents.reduce((sum, e) => sum + e.score, 0) / scoredEvents.length)
+    : 0; 
   const totalBins = events.reduce((sum, e) => {
     const bins = e.estimatedBins ? (e.estimatedBins.wet + e.estimatedBins.dry + e.estimatedBins.recyclable) : 0;
     return sum + bins;
@@ -31,10 +53,13 @@ export default function Dashboard() {
   const certificates = events.filter(e => e.status === 'completed').length;
 
   const getActionButton = (event) => {
-    if (event.status === 'registered') return { label: 'View Estimate →', path: `/organizer/estimate/${event._id}` }
-    if (event.status === 'active') return { label: 'Log Event Day →', path: `/organizer/live-log/${event._id}` }
     if (event.status === 'completed') return { label: 'View Report →', path: `/organizer/report/${event._id}` }
-    return { label: 'View Details', path: `/organizer/report/${event._id}` }
+    
+    // IF active: means we already submitted live logs, and are waiting for BMC pickup
+    if (event.status === 'active') return { label: 'Awaiting Pickup...', path: `/organizer/estimate/${event._id}`, disabled: true }
+    
+    // IF registered: allow logging event day bins
+    return { label: 'Log Event Day →', path: `/organizer/live-log/${event._id}` }
   };
 
   const recentActivity = events.slice(0, 5).map(e => ({
@@ -126,7 +151,7 @@ export default function Dashboard() {
                       <th>Bins</th>
                       <th>Score</th>
                       <th>Status</th>
-                      <th>Action</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -175,16 +200,44 @@ export default function Dashboard() {
                             ) : null}
                           </td>
                           <td>
-                            <button
-                              className="btn-primary"
-                              style={{fontSize: '12px', padding: '6px 14px'}}
-                              onClick={(ev) => {
-                                ev.stopPropagation();
-                                navigate(action.path, { state: { eventId: e._id } });
-                              }}
-                            >
-                              {action.label}
-                            </button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <button
+                                className="btn-primary"
+                                style={{fontSize: '12px', padding: '6px 14px'}}
+                                onClick={(ev) => {
+                                  ev.stopPropagation();
+                                  navigate(action.path, { state: { eventId: e._id } });
+                                }}
+                              >
+                                {action.label}
+                              </button>
+                              <button
+                                onClick={(ev) => handleDeleteEvent(e._id, e.eventName, ev)}
+                                style={{
+                                  background: 'rgba(239, 68, 68, 0.08)',
+                                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                                  color: '#ef4444',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  padding: '6px 10px',
+                                  borderRadius: '50px',
+                                  transition: 'all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+                                }}
+                                onMouseOver={(ev) => { 
+                                  ev.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)'; 
+                                  ev.currentTarget.style.transform = 'scale(1.05) translateY(-1px)'; 
+                                }}
+                                onMouseOut={(ev) => { 
+                                  ev.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)'; 
+                                  ev.currentTarget.style.transform = 'scale(1) translateY(0)'; 
+                                }}
+                                title="Delete Event"
+                              >
+                                <RiDeleteBinLine size={15} />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );

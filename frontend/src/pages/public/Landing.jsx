@@ -15,11 +15,18 @@ export default function Landing() {
   const { user } = useAuth();
 
   useEffect(() => {
+    // If worker token/user exists, prioritize that routing
+    const worker = localStorage.getItem('ecoevent_worker');
+    if (worker) {
+      navigate('/worker/dashboard');
+      return;
+    }
+
     if (user) {
       if (user.role === 'organizer') navigate('/organizer/dashboard');
       else navigate('/bmc/overview');
     }
-  }, [user]);
+  }, [user, navigate]);
 
 
   return (
@@ -260,6 +267,7 @@ export default function Landing() {
             <div className="footer__col-title">Platform</div>
             <Link to="/register">Register Event</Link>
             <Link to="/login">BMC Portal</Link>
+            <Link to="/worker/login">Field Worker Portal</Link>
             <a href="#how-it-works">How It Works</a>
           </div>
 

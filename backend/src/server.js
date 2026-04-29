@@ -23,9 +23,9 @@ app.use(cors({
   credentials: true
 }))
 
-// Parse incoming request bodies
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
+// Parse incoming request bodies (increased limit for base64 photo uploads)
+app.use(express.json({ limit: '20mb' }))
+app.use(express.urlencoded({ limit: '20mb', extended: true }))
 
 // ==========================================
 // 2. Health & Monitoring
@@ -41,6 +41,7 @@ app.use('/api/auth',      require('./routes/auth.routes'))
 app.use('/api/events',    require('./routes/event.routes'))
 app.use('/api/wastelogs', require('./routes/wastelog.routes'))
 app.use('/api/bmc',       require('./routes/bmc.routes'))
+app.use('/api/workers',   require('./routes/worker.routes'))
 
 // ==========================================
 // 4. Global Error Handling

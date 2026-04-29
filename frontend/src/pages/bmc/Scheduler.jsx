@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import PageWrapper from '../../components/shared/PageWrapper';
 import { RiTruckLine, RiCheckLine, RiLoader4Line } from 'react-icons/ri';
-import { bmcAPI } from '../../services/api';
+import { bmcAPI, bmcFleetAPI } from '../../services/api';
 import './Scheduler.css';
 
 const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -16,6 +16,8 @@ export default function Scheduler() {
   const [pickupTime, setPickupTime] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [availableWorkers, setAvailableWorkers] = useState([]);
+  const [selectedWorkerId, setSelectedWorkerId] = useState('');
 
   const fetchEvents = () => {
     setLoading(true);
@@ -38,6 +40,13 @@ export default function Scheduler() {
   useEffect(() => {
     fetchEvents();
   }, [location.state]);
+
+  // Fetch available workers for the dropdown
+  useEffect(() => {
+    bmcFleetAPI.getAvailable()
+      .then(res => setAvailableWorkers(res.data.workers || []))
+      .catch(console.error)
+  }, []);
 
   const getDayOfWeek = (dateStr) => {
     if (!dateStr) return '';
@@ -76,25 +85,36 @@ export default function Scheduler() {
 
   const handleConfirm = () => {
     const sel = events.find(e => e._id === selectedEventId);
-    if (sel && sel.pickupSlot?._id && truck) {
-      if (!pickupTime) {
-        alert('Please set an arrival time.');
-        return;
-      }
-      setSubmitting(true);
-      bmcAPI.confirmSlot(sel.pickupSlot._id, { truckId: truck, scheduledTime: pickupTime })
-        .then(() => {
-          alert(`Pickup confirmed for ${sel.eventName}! Planner will be notified.`);
-          fetchEvents();
-        })
-        .catch(err => {
-          console.error(err);
-          alert('Failed to confirm pickup.');
-        })
-        .finally(() => setSubmitting(false));
-    } else {
-      alert("Please select a truck to secure this slot.");
+    if (!sel || !sel.pickupSlot?._id) {
+      alert('Please select an event first.');
+      return;
     }
+    if (!pickupTime) {
+      alert('Please set an arrival time.');
+      return;
+    }
+    // Use selected worker's truckId, or the manually typed truck
+    const selectedWorker = availableWorkers.find(w => w._id === selectedWorkerId);
+    const finalTruckId = selectedWorker ? selectedWorker.truckId : (truck || 'Unassigned');
+    setSubmitting(true);
+    bmcAPI.confirmSlot(sel.pickupSlot._id, {
+      truckId: finalTruckId,
+      scheduledTime: pickupTime,
+      workerId: selectedWorkerId || null
+    })
+      .then(() => {
+        alert(`Pickup confirmed for ${sel.eventName}! Worker will be notified.`);
+        fetchEvents();
+        // Refresh available workers list after assignment
+        bmcFleetAPI.getAvailable()
+          .then(res => setAvailableWorkers(res.data.workers || []))
+          .catch(console.error)
+      })
+      .catch(err => {
+        console.error(err);
+        alert(err.response?.data?.error || 'Failed to confirm pickup.');
+      })
+      .finally(() => setSubmitting(false));
   };
 
   const sel = events.find(e => e._id === selectedEventId);
@@ -207,12 +227,26 @@ export default function Scheduler() {
 
                   <div style={{ marginTop: '24px' }}>
                     <div className="form-group">
-                      <label>Assign Municipal Truck</label>
-                      <select value={truck} onChange={(e) => setTruck(e.target.value)}>
-                        <option value="">Select an available truck...</option>
-                        <option value="MH-01-AB-1234">MH-01-AB-1234 — 10T Compactor</option>
-                        <option value="MH-01-CD-5678">MH-01-CD-5678 — 6T Open</option>
-                        <option value="MH-01-EF-9012">MH-01-EF-9012 — 8T Covered</option>
+                      <label>Assign Worker & Truck</label>
+                      <select
+                        value={selectedWorkerId}
+                        onChange={e => setSelectedWorkerId(e.target.value)}
+                        style={{
+                          width: '100%', padding: '10px 12px',
+                          background: 'var(--bg)', border: '1px solid var(--border)',
+                          borderRadius: '8px', fontFamily: 'DM Sans, sans-serif',
+                          fontSize: '13px', color: 'var(--text-1)'
+                        }}
+                      >
+                        <option value="">Select available worker & truck...</option>
+                        {availableWorkers.map(w => (
+                          <option key={w._id} value={w._id}>
+                            {w.name} — {w.truckName} {w.truckCapacity ? `· ${w.truckCapacity}` : ''} · Shift: {w.shiftStart}–{w.shiftEnd}
+                          </option>
+                        ))}
+                        {availableWorkers.length === 0 && (
+                          <option disabled>No workers available right now</option>
+                        )}
                       </select>
                     </div>
 

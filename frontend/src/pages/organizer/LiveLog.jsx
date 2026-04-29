@@ -13,6 +13,68 @@ const FILL_OPTIONS = [
   { value: 1.00, label: '100%' },
 ]
 
+const BinCard = ({ label, bins, type, colorClass, confirmed, onAdd, onUpdate, onConfirm, onRemove }) => {
+  return (
+    <div className="card" style={{ marginBottom: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <div>
+          <h4 className="heading-4">{label}</h4>
+          {confirmed > 0 && (
+            <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600, marginTop: '4px', display: 'block' }}>
+              ✓ {confirmed.toFixed(2)} bins confirmed & saved
+            </span>
+          )}
+        </div>
+        <button type="button" className="btn-ghost btn-sm" onClick={(e) => { e.preventDefault(); onAdd(type); }}>
+          <RiAddLine /> Add Bin
+        </button>
+      </div>
+
+      <div className="livelog__bins-list">
+        {bins.length === 0 && (
+          <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-3)', fontSize: '13px', background: 'var(--bg-2)', borderRadius: '12px' }}>
+            All bins confirmed. Click "Add Bin" if more are needed.
+          </div>
+        )}
+        {bins.map((bin, idx) => (
+          <div key={`${type}-${idx}`} className="livelog__bin-row" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: 'var(--bg-2)', borderRadius: '12px', marginBottom: '10px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-3)', minWidth: '40px' }}>BIN {idx + 1}</span>
+            <div style={{ flex: 1, display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {FILL_OPTIONS.map(opt => (
+                <button
+                  type="button"
+                  key={opt.value}
+                  className={`fill-btn ${colorClass} ${bin.fill === opt.value ? 'active' : ''}`}
+                  onClick={(e) => { e.preventDefault(); onUpdate(type, idx, opt.value); }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <button 
+              type="button" 
+              className="btn-confirm btn-sm" 
+              title="Confirm & save this bin" 
+              onClick={(e) => { e.preventDefault(); onConfirm(type, idx); }} 
+              style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}
+            >
+              <RiCheckLine size={14} /> Confirm
+            </button>
+            <button 
+              type="button" 
+              className="btn-danger btn-sm" 
+              style={{ padding: '8px' }} 
+              onClick={(e) => { e.preventDefault(); onRemove(type, idx); }}
+            >
+              <RiDeleteBin7Line />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function LiveLog() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -100,13 +162,18 @@ export default function LiveLog() {
       // Sum confirmed bins + any remaining active bins for the final payload
       const payload = {
         eventId: id,
-        wetFill:    confirmedData.wet + wetBins.reduce((a, b) => a + b.fill, 0),
-        dryFill:    confirmedData.dry + dryBins.reduce((a, b) => a + b.fill, 0),
+
+        // Fill levels MUST be decimal (0.25, 0.5, 0.75, 1.0)
+        wetFill:     confirmedData.wet + wetBins.reduce((a, b) => a + b.fill, 0),
+        dryFill:     confirmedData.dry + dryBins.reduce((a, b) => a + b.fill, 0),
         recycleFill: confirmedData.rec + recBins.reduce((a, b) => a + b.fill, 0),
-        bottlesUsed: Number(bottlesUsed) || 0,
-        platesUsed:  Number(platesUsed) || 0,
+
+        bottlesUsed:   Number(bottlesUsed)   || 0,
+        platesUsed:    Number(platesUsed)    || 0,
         leftoverTrays: Number(leftoverTrays) || 0,
-        segregationStatus
+
+        // CRITICAL: must be lowercase
+        segregationStatus: (segregationStatus || 'no').toLowerCase().trim(),
       }
       await wasteLogAPI.submit(payload)
       setToast('Waste log submitted!')
@@ -118,57 +185,6 @@ export default function LiveLog() {
     }
   }
 
-  const BinCard = ({ label, bins, type, colorClass }) => {
-    const confirmed = confirmedData[type]
-    return (
-      <div className="card" style={{ marginBottom: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <div>
-            <h4 className="heading-4">{label}</h4>
-            {confirmed > 0 && (
-              <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600, marginTop: '4px', display: 'block' }}>
-                ✓ {confirmed.toFixed(2)} bins confirmed & saved
-              </span>
-            )}
-          </div>
-          <button type="button" className="btn-ghost btn-sm" onClick={() => handleAddBin(type)}>
-            <RiAddLine /> Add Bin
-          </button>
-        </div>
-
-        <div className="livelog__bins-list">
-          {bins.length === 0 && (
-            <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-3)', fontSize: '13px', background: 'var(--bg-2)', borderRadius: '12px' }}>
-              All bins confirmed. Click "Add Bin" if more are needed.
-            </div>
-          )}
-          {bins.map((bin, idx) => (
-            <div key={idx} className="livelog__bin-row" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: 'var(--bg-2)', borderRadius: '12px', marginBottom: '10px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-3)', minWidth: '40px' }}>BIN {idx + 1}</span>
-              <div style={{ flex: 1, display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                {FILL_OPTIONS.map(opt => (
-                  <button
-                    type="button"
-                    key={opt.value}
-                    className={`fill-btn ${colorClass} ${bin.fill === opt.value ? 'active' : ''}`}
-                    onClick={() => handleUpdateBin(type, idx, opt.value)}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-              <button type="button" className="btn-confirm btn-sm" title="Confirm & save this bin" onClick={() => handleConfirmBin(type, idx)} style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                <RiCheckLine size={14} /> Confirm
-              </button>
-              <button type="button" className="btn-danger btn-sm" style={{ padding: '8px' }} onClick={() => handleRemoveBin(type, idx)}>
-                <RiDeleteBin7Line />
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-    )
-  }
 
   return (
     <PageWrapper role="organizer">
@@ -185,9 +201,39 @@ export default function LiveLog() {
 
         <div className="livelog__layout">
           <div className="livelog__main">
-            <BinCard label="Wet Waste" bins={wetBins} type="wet" colorClass="wet" />
-            <BinCard label="Dry Waste" bins={dryBins} type="dry" colorClass="dry" />
-            <BinCard label="Recyclable" bins={recBins} type="rec" colorClass="rec" />
+            <BinCard 
+              label="Wet Waste" 
+              bins={wetBins} 
+              type="wet" 
+              colorClass="wet" 
+              confirmed={confirmedData.wet}
+              onAdd={handleAddBin}
+              onUpdate={handleUpdateBin}
+              onConfirm={handleConfirmBin}
+              onRemove={handleRemoveBin}
+            />
+            <BinCard 
+              label="Dry Waste" 
+              bins={dryBins} 
+              type="dry" 
+              colorClass="dry" 
+              confirmed={confirmedData.dry}
+              onAdd={handleAddBin}
+              onUpdate={handleUpdateBin}
+              onConfirm={handleConfirmBin}
+              onRemove={handleRemoveBin}
+            />
+            <BinCard 
+              label="Recyclable" 
+              bins={recBins} 
+              type="rec" 
+              colorClass="rec" 
+              confirmed={confirmedData.rec}
+              onAdd={handleAddBin}
+              onUpdate={handleUpdateBin}
+              onConfirm={handleConfirmBin}
+              onRemove={handleRemoveBin}
+            />
 
             <div className="card">
               <h4 className="heading-4" style={{ marginBottom: '20px' }}>Item Consumption</h4>

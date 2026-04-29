@@ -12,8 +12,8 @@ const wasteLogSchema = new mongoose.Schema({
   score:             { type: Number, default: 0 },
   scoreBreakdown:    {
     segregation: { type: Number, default: 0 },
-    plates:      { type: Number, default: 0 },
-    decor:       { type: Number, default: 0 },
+    plateType:   { type: Number, default: 0 },
+    noThermocol: { type: Number, default: 0 },
     accuracy:    { type: Number, default: 0 }
   },
   submittedAt:       { type: Date, default: Date.now }

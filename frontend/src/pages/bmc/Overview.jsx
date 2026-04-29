@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { bmcAPI } from '../../services/api'
+import { bmcAPI, bmcWorkerAPI, bmcCompletionAPI } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import PageWrapper from '../../components/shared/PageWrapper'
 import StatCard from '../../components/shared/StatCard'
@@ -14,6 +14,10 @@ export default function Overview() {
     totalEvents: 0, totalBins: 0, confirmed: 0, pending: 0
   })
   const [pendingEvents, setPendingEvents] = useState([])
+  const [declinedAlerts, setDeclinedAlerts] = useState([])
+  const [workerCompletions, setWorkerCompletions] = useState([])
+  const [photoModal, setPhotoModal] = useState(null) // {photo, workerName, eventName}
+  const [confirming, setConfirming] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -28,6 +32,14 @@ export default function Overview() {
       })
       .catch(console.error)
       .finally(() => setLoading(false))
+
+    bmcWorkerAPI.getDeclinedAlerts()
+      .then(res => setDeclinedAlerts(res.data.declinedAlerts || []))
+      .catch(console.error)
+
+    bmcCompletionAPI.getWorkerCompletions()
+      .then(res => setWorkerCompletions(res.data.completions || []))
+      .catch(console.error)
   }, [])
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
@@ -52,6 +64,138 @@ export default function Overview() {
             <RiLogoutBoxRLine /> Sign Out
           </button>
         </div>
+
+        {/* Worker Completion Alerts */}
+        {workerCompletions.length > 0 && (
+          <div style={{
+            background: 'rgba(110,232,74,0.06)',
+            border: '1px solid rgba(110,232,74,0.25)',
+            borderRadius: '12px', padding: '16px', marginBottom: '16px'
+          }}>
+            <p style={{
+              fontSize: '13px', fontWeight: 600,
+              color: 'var(--accent)', marginBottom: '12px'
+            }}>
+              ✓ Workers Awaiting Your Confirmation ({workerCompletions.length})
+            </p>
+            {workerCompletions.map(item => (
+              <div key={item._id} style={{
+                background: 'var(--bg-card)', border: '1px solid var(--border)',
+                borderRadius: '10px', padding: '12px', marginBottom: '8px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-1)' }}>
+                      {item.eventId?.eventName}
+                    </p>
+                    <p style={{ fontSize: '11px', color: 'var(--text-2)', marginTop: '3px' }}>
+                      🚛 {item.workerId?.name} ({item.workerId?.truckName})
+                    </p>
+                    <p style={{ fontSize: '11px', color: 'var(--text-2)' }}>
+                      📅 {item.eventId?.date} · 📍 {item.eventId?.venueName}
+                    </p>
+                    {item.workerNotes && (
+                      <p style={{ fontSize: '11px', color: 'var(--text-2)', fontStyle: 'italic', marginTop: '3px' }}>
+                        Note: {item.workerNotes}
+                      </p>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flexShrink: 0 }}>
+                    {/* View photo button */}
+                    {item.proofPhotoBase64 && (
+                      <button
+                        onClick={() => setPhotoModal({
+                          photo: item.proofPhotoBase64,
+                          workerName: item.workerId?.name,
+                          eventName: item.eventId?.eventName,
+                          slotId: item.pickupSlotId?._id || item.pickupSlotId
+                        })}
+                        style={{
+                          padding: '7px 14px', background: 'rgba(59,130,246,0.1)',
+                          color: '#3b82f6', border: '1px solid rgba(59,130,246,0.3)',
+                          borderRadius: '50px', fontFamily: 'DM Sans, sans-serif',
+                          fontSize: '12px', cursor: 'pointer', fontWeight: 500
+                        }}
+                      >
+                        📷 View Proof
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Photo proof modal */}
+        {photoModal && (
+          <div style={{
+            position: 'fixed', inset: 0,
+            background: 'rgba(0,0,0,0.85)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 1000, padding: '20px'
+          }}>
+            <div style={{
+              background: 'var(--bg-card)', border: '1px solid var(--border)',
+              borderRadius: '16px', padding: '24px',
+              maxWidth: '480px', width: '100%'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <div>
+                  <p style={{ fontFamily: 'Fraunces, serif', fontSize: '16px', fontWeight: 700, color: 'var(--text-1)' }}>
+                    Proof Photo
+                  </p>
+                  <p style={{ fontSize: '12px', color: 'var(--text-2)' }}>
+                    {photoModal.workerName} · {photoModal.eventName}
+                  </p>
+                </div>
+                <button onClick={() => setPhotoModal(null)} style={{
+                  background: 'transparent', border: 'none', color: 'var(--text-2)',
+                  cursor: 'pointer', fontSize: '20px'
+                }}>✕</button>
+              </div>
+
+              <img
+                src={photoModal.photo}
+                alt="Worker proof"
+                style={{
+                  width: '100%', maxHeight: '300px',
+                  objectFit: 'contain', borderRadius: '10px',
+                  border: '1px solid var(--border)', marginBottom: '16px'
+                }}
+              />
+
+              <button
+                onClick={async () => {
+                  setConfirming(true)
+                  try {
+                    await bmcCompletionAPI.bmcConfirmComplete(photoModal.slotId)
+                    setPhotoModal(null)
+                    // Refresh completions list
+                    const res = await bmcCompletionAPI.getWorkerCompletions()
+                    setWorkerCompletions(res.data.completions || [])
+                  } catch (err) {
+                    alert(err.response?.data?.error || 'Failed to confirm')
+                  } finally { setConfirming(false) }
+                }}
+                disabled={confirming}
+                style={{
+                  width: '100%', padding: '14px',
+                  background: 'var(--accent)', color: '#071007',
+                  border: 'none', borderRadius: '50px',
+                  fontFamily: 'DM Sans, sans-serif', fontSize: '14px',
+                  fontWeight: 600, cursor: 'pointer'
+                }}
+              >
+                {confirming ? 'Confirming...' : '✓ Confirm Pickup Complete'}
+              </button>
+              <p style={{ fontSize: '11px', color: 'var(--text-2)', textAlign: 'center', marginTop: '8px' }}>
+                By confirming, you verify this pickup was completed. Organizer will be notified.
+              </p>
+            </div>
+          </div>
+        )}
 
         {showRiskAlert && (
           <div style={{
@@ -126,6 +270,33 @@ export default function Overview() {
                   ))
                 )}
               </div>
+
+              {/* Declined job alerts */}
+              {declinedAlerts.length > 0 && (
+                <div style={{ marginTop: '16px' }}>
+                  <p style={{ fontSize: '12px', fontWeight: 600, color: '#ef4444', marginBottom: '8px' }}>
+                    ⚠ Worker Declined Jobs — Reassignment Needed
+                  </p>
+                  {declinedAlerts.map(alert => (
+                    <div key={alert._id} style={{
+                      background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)',
+                      borderRadius: '8px', padding: '10px 12px', marginBottom: '8px', fontSize: '12px'
+                    }}>
+                      <p style={{ fontWeight: 500, color: 'var(--text-1)' }}>
+                        {alert.eventId?.eventName} — Declined by {alert.workerId?.name}
+                      </p>
+                      <p style={{ color: 'var(--text-2)', marginTop: '3px' }}>
+                        Reason: {alert.declineReason}
+                      </p>
+                      {alert.declineProofUrl && (
+                        <p style={{ color: '#3b82f6', fontSize: '11px', marginTop: '2px' }}>
+                          Proof: {alert.declineProofUrl}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

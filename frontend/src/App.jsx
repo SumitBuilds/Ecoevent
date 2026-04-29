@@ -24,6 +24,17 @@ import Analytics from './pages/bmc/Analytics';
 import EventDetail from './pages/bmc/EventDetail';
 import WeeklyPlan from './pages/bmc/WeeklyPlan';
 import WardSettings from './pages/bmc/WardSettings';
+import FleetStatus from './pages/bmc/FleetStatus';
+import FleetManagement from './pages/bmc/FleetManagement';
+
+// Worker
+import WorkerLogin from './pages/worker/WorkerLogin';
+import WorkerLayout from './pages/worker/WorkerLayout';
+import WorkerDashboard from './pages/worker/WorkerDashboard';
+import WorkerJobs from './pages/worker/WorkerJobs';
+import WorkerProfile from './pages/worker/WorkerProfile';
+// Keep old JobDetail import for backward compatibility
+import JobDetail from './pages/worker/JobDetail';
 
 export default function App() {
   return (
@@ -93,6 +104,22 @@ export default function App() {
       <Route path="/bmc/settings" element={
         <ProtectedRoute role="bmc"><WardSettings /></ProtectedRoute>
       } />
+      <Route path="/bmc/fleet-status" element={
+        <ProtectedRoute role="bmc"><FleetStatus /></ProtectedRoute>
+      } />
+      <Route path="/bmc/fleet-management" element={
+        <ProtectedRoute role="bmc"><FleetManagement /></ProtectedRoute>
+      } />
+
+      {/* Worker Portal */}
+      <Route path="/worker/login" element={<WorkerLogin />} />
+      <Route path="/worker" element={<WorkerLayout />}>
+        <Route path="dashboard"  element={<WorkerDashboard />} />
+        <Route path="jobs"       element={<WorkerJobs />} />
+        <Route path="job/:id"    element={<JobDetail />} />
+        <Route path="profile"    element={<WorkerProfile />} />
+      </Route>
+
       <Route path="*" element={<Landing />} />
     </Routes>
   );

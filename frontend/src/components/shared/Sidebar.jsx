@@ -4,7 +4,7 @@ import {
   RiLeafLine, RiFileChartLine, RiMedalLine,
   RiCalendarEventLine, RiTruckLine, RiShieldCheckLine,
   RiBarChartLine, RiSettings3Line, RiLogoutBoxLine,
-  RiAlertLine, RiWhatsappLine, RiUserLine
+  RiAlertLine, RiWhatsappLine, RiUserLine, RiTeamLine
 } from 'react-icons/ri';
 import { useAuth } from '../../context/AuthContext';
 import './Sidebar.css';
@@ -26,20 +26,39 @@ const bmcLinks = [
   { to: '/bmc/audit', icon: RiShieldCheckLine, label: 'Audit Log' },
   { to: '/bmc/analytics', icon: RiBarChartLine, label: 'Analytics' },
   { to: '/bmc/weekly-plan', icon: RiCalendarCheckLine, label: 'Weekly Plan' },
+  { to: '/bmc/fleet-status', icon: RiTruckLine, label: 'Fleet Status' },
+  { to: '/bmc/fleet-management', icon: RiTeamLine, label: 'Fleet Management' },
   { to: '/bmc/settings', icon: RiSettings3Line, label: 'Ward Settings' },
+];
+
+const workerLinks = [
+  { to: '/worker/dashboard', icon: RiDashboardLine, label: 'Dashboard' },
+  { to: '/worker/jobs', icon: RiListCheck2, label: 'My Jobs' },
+  { to: '/worker/profile', icon: RiUserLine, label: 'Profile' },
 ];
 
 export default function Sidebar({ role = 'organizer', isOpen, setIsOpen }) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const links = role === 'bmc' ? bmcLinks : organizerLinks;
-  const userName = user?.name || (role === 'bmc' ? 'BMC Officer' : 'Event Organizer');
-  const userRole = role === 'bmc' ? 'BMC Ward Officer' : 'Event Organizer';
+
+  // Worker sidebar detection
+  const workerData = JSON.parse(localStorage.getItem('ecoevent_worker') || '{}');
+  const isWorker = workerData?.id && window.location.pathname.startsWith('/worker/');
+
+  const links = isWorker ? workerLinks : role === 'bmc' ? bmcLinks : organizerLinks;
+  const userName = isWorker ? (workerData.name || 'Worker') : user?.name || (role === 'bmc' ? 'BMC Officer' : 'Event Organizer');
+  const userRole = isWorker ? (workerData.truckName || 'Driver / Worker') : role === 'bmc' ? 'BMC Ward Officer' : 'Event Organizer';
   const initials = userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
   const handleLogout = () => {
-    logout();
-    navigate('/');
+    if (isWorker) {
+      localStorage.removeItem('ecoevent_worker_token');
+      localStorage.removeItem('ecoevent_worker');
+      navigate('/worker/login');
+    } else {
+      logout();
+      navigate('/');
+    }
   };
 
   const handleLinkClick = () => {

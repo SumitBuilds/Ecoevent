@@ -74,8 +74,8 @@ export default function Report() {
 
   const breakdownCards = [
     { label: 'Segregation', points: breakdown.segregation, max: 40 },
-    { label: 'Plate Type', points: breakdown.plates, max: 20 },
-    { label: 'No Thermocol', points: breakdown.decor, max: 15 },
+    { label: 'Plate Type', points: breakdown.plateType, max: 20 },
+    { label: 'No Thermocol', points: breakdown.noThermocol, max: 15 },
     { label: 'Accuracy (Est vs Actual)', points: breakdown.accuracy, max: 25 },
   ]
 
