@@ -9,8 +9,7 @@ function calculateScore({
   estimatedBins,
   wetFill,
   dryFill,
-  recycleFill,
-  compactionFactor = 1.0
+  recycleFill
 }) {
   let score = 0
   const decor = (Array.isArray(decorTypes) ? decorTypes : []).map(d => d.toLowerCase())
@@ -39,9 +38,12 @@ function calculateScore({
   const estRec = Math.max(1, Number(estimatedBins?.recyclable) || 1)
   const estTotal = estWet + estDry + estRec
 
-  const actualWet = Math.ceil((Number(wetFill)     || 0) * estWet)
-  const actualDry = Math.ceil((Number(dryFill)     || 0) * estDry * (compactionFactor || 1.0))
-  const actualRec = Math.ceil((Number(recycleFill) || 0) * estRec)
+  // LiveLog sends the SUM of all bin fill levels per category
+  // e.g. 3 bins at 75% each → wetFill = 2.25 (already bin-equivalents)
+  // Just ceil() to get physical bin count — do NOT multiply by estimated
+  const actualWet = Math.ceil(Number(wetFill)     || 0)
+  const actualDry = Math.ceil(Number(dryFill)     || 0)
+  const actualRec = Math.ceil(Number(recycleFill) || 0)
   const actTotal  = actualWet + actualDry + actualRec
 
   const diff     = Math.abs(actTotal - estTotal)
